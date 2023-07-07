@@ -118,7 +118,6 @@ const TravelListModal = ({
 
   const customHeader = () => (
     <HeaderTextWrapper>
-      {!accordianStatus && <Spacer.Column numberOfSpaces={getSpacing(3)} />}
       <Typo.Body style={{ textAlign: 'center', fontWeight: '700', fontSize: 15 }}>
         {!isLoading ? 'Sélectionnez votre mode de transport ' : 'Recherche'}
       </Typo.Body>
@@ -269,8 +268,6 @@ const ErrorMessageWrapper = styled.View({
 const NoteContainer = styled.View({
   justifyContent: 'center',
   alignItems: 'center',
-  // paddingTop: 5,
-  // paddingBottom: 5,
   padding: 10,
   width: '90%',
   backgroundColor: ColorsEnum.GREY_MEDIUM,
