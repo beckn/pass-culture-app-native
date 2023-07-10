@@ -32,7 +32,7 @@ const { HyperSDKModule } = NativeModules
 export const SelectTravelOptions = ({ navigation, route }: any) => {
 
   console.log('test username', api.getnativev1me())
-  const [mobileNumber, setMobileNumber] = useState()
+  const [mobileNumber, setMobileNumber] = useState<String| undefined>()
   const mobileCountryCode = '+91'
 
   const enterPIPMode = () => {
@@ -125,8 +125,7 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
   const [currentAddress, setCurrentAddress] = useState();
   const [destAddress, setdestAddress] = useState();
   const { address: bookingAddress } = useBookingDetailsContext()
-  console.log('bookingAddress---------------->', bookingAddress)
-
+  
   useEffect(() => {
     const fetchCurrentLocation = async () => {
       try {
@@ -155,7 +154,7 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
     fetchCurrentLocation()
   }, [permissionState, showGeolocPermissionModal])
 
-  function getAddressFromCoordinates(latitude, longitude) {
+  function getAddressFromCoordinates(latitude:Number, longitude:Number) {
     const apiKey = 'AIzaSyDj_jBuujsEk8mkIva0xG6_H73oJEytXEA';
     const geocodeApiUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`;
 
@@ -283,8 +282,7 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
       const { firstName } = (await api.getnativev1me()) || 'user'
       const { phoneNumber } = (await api.getnativev1me()) || '+918297921333'
       let mobile = phoneNumber?.slice(3, phoneNumber.length)
-      console.log("test username1", mobile, firstName)
-      setMobileNumber(mobile);
+       setMobileNumber(mobile);
       getCoordinatesFromAddress(bookingAddress);
       try {
         const result = await HyperSDKModule.dynamicSign(firstName, mobile, mobileCountryCode)
@@ -430,7 +428,7 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
           visible={modalVisible}
           showLoader={showLoader}
           onProceed={() => handleClick()}
-          toggleModal={(value: boolean) => goBack()}
+          toggleModal={() => goBack()}
         />
       )}
     </View>
