@@ -299,7 +299,6 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
 
   useEffect(() => {
     const processPayload2Copy = { ...processPayload2 } // Create a copy of the processPayload2 object
-    9090902024
     if (signatureResponse) {
       processPayload2Copy.payload.signatureAuthData.signature = signatureResponse.signature;
       processPayload2Copy.payload.signatureAuthData.authData = signatureResponse.signatureAuthData;
