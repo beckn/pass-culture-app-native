@@ -36,6 +36,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { env } from 'libs/environment'
 import { api } from 'api/api'
 import HyperSdkReact from 'hyper-sdk-react'
+import { RideCanceledModal } from 'features/travelOptions/components/RideCanceledModal/RideCanceledModal'
 
 const emptyBookings: Booking[] = []
 
@@ -59,11 +60,16 @@ export function OnGoingBookingsList() {
   const [mobileNumber, setMobileNumber] = useState()
   const mobileCountryCode = '+91'
   const [reservedRides, setReserveRides] = useState([])
+  const [showRideCanceledModal, setShowRideCanceledModal] = useState<boolean>(false)
 
   const {
     ongoing_bookings: ongoingBookings = emptyBookings,
     ended_bookings: endedBookings = emptyBookings,
   } = bookings ?? {}
+
+  async function removeCurrentRide() {
+    await AsyncStorage.removeItem('currentRide');
+  }
 
 
   const updateReservation = async (tripId: Number|String, tripAmount :Number|String ) => {
@@ -76,7 +82,7 @@ export function OnGoingBookingsList() {
       currentRide['tripamount'] = tripAmount
       reservations.push(currentRide);
       await AsyncStorage.setItem('reservations',JSON.stringify(reservations));
-      await AsyncStorage.removeItem('currentRide');
+      await removeCurrentRide();
     } catch (error) {
       console.log('Error updating reservation:', error);
     }
@@ -256,6 +262,10 @@ export function OnGoingBookingsList() {
 
   }, [isFetching])
 
+  const closeRidecancelModal = () =>{
+    setShowRideCanceledModal(false)
+  }
+
   useEffect(() => {
     const processPayload2Copy = { ...processPayload2 } // Create a copy of the processPayload2 object
 
@@ -282,7 +292,7 @@ export function OnGoingBookingsList() {
         case 'initiate_result':
           const payload = data.payload || {}
           const res = payload ? payload.status : payload
-          console.log('initiate_result: ', processPayload2)
+          console.log('initiate_result1: ', processPayload2)
           if (res === 'SUCCESS') {
             // Initiation is successful, call process method
             if (processPayload2.payload.signatureAuthData != undefined) {
@@ -309,9 +319,15 @@ export function OnGoingBookingsList() {
             //function call for wallet transaction
 
             await updateReservation(processPayload?.trip_id, processPayload?.trip_amount);
-            console.log('process_call: wallet transaction ---------------------------> ', processPayload)
+            console.log('process_call: wallet transaction222 ---------------------------> ', processPayload)
             refreshData(mobileNumber);
             // HyperSdkReact.terminate();
+          } else if( processPayload?.ride_status === 'CANCELLED_PRODUCT') {
+              console.log('process_call: Ride canceled By the driver ', processPayload)
+              HyperSdkReact.terminate()
+              setShowRideCanceledModal(true)
+              removeCurrentRide()
+            refreshData(mobileNumber)
           } else if (
             processPayload?.action === 'feedback_submitted' || processPayload?.screen === 'home_screen') {
             console.log('process_call: wallet transaction ', processPayload)
@@ -338,6 +354,9 @@ export function OnGoingBookingsList() {
     })
 
     return () => {
+
+      console.log('--- removed listioner')
+
       eventListener.remove()
       BackHandler.removeEventListener('hardwareBackPress', () => null)
     }
@@ -420,6 +439,7 @@ export function OnGoingBookingsList() {
         onScroll={onScroll}
         scrollEventThrottle={400}
       />
+      <RideCanceledModal isModalVisible={showRideCanceledModal} onPressModalButton={closeRidecancelModal} hideModal={closeRidecancelModal}/>
     </Container>
   )
 }

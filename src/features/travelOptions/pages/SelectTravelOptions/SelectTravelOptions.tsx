@@ -1,25 +1,23 @@
-import React, { useState, useEffect } from 'react'
-import {
-  View,
-  Linking,
-  NativeModules,
-  NativeEventEmitter,
-  BackHandler,
-  ActivityIndicator,
-} from 'react-native'
-import MapComponent from '../../components/MapComponent/MapComponent'
-import TravelListModal from '../../components/TravelListModal/TravelListModal'
-import { GeolocPermissionState, useGeolocation } from 'libs/geolocation'
-import { PageHeaderSecondary } from 'ui/components/headers/PageHeaderSecondary'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useNavigation } from '@react-navigation/native'
+import { api } from 'api/api'
+import { useBookingDetailsContext } from 'features/bookings/pages/BookingDetails/context/BookingDetailsContextProvider'
 import { UseNavigationType } from 'features/navigation/RootNavigator/types'
+import { RideCanceledModal } from 'features/travelOptions/components/RideCanceledModal/RideCanceledModal'
 import HyperSdkReact from 'hyper-sdk-react'
 import { env } from 'libs/environment'
-import { api } from 'api/api'
+import { GeolocPermissionState, useGeolocation } from 'libs/geolocation'
+import React, { useEffect, useState } from 'react'
+import {
+  BackHandler,
+  NativeEventEmitter,
+  NativeModules,
+  View
+} from 'react-native'
+import { PageHeaderSecondary } from 'ui/components/headers/PageHeaderSecondary'
 import { ColorsEnum } from 'ui/theme/colors'
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useBookingDetailsContext } from 'features/bookings/pages/BookingDetails/context/BookingDetailsContextProvider'
-import { any } from 'prop-types'
+import MapComponent from '../../components/MapComponent/MapComponent'
+import TravelListModal from '../../components/TravelListModal/TravelListModal'
 
 
 interface Location {
@@ -33,6 +31,7 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
 
   console.log('test username', api.getnativev1me())
   const [mobileNumber, setMobileNumber] = useState<String| undefined>()
+  const [showRideCanceledModal, setShowRideCanceledModal] = useState<boolean>(false)
   const mobileCountryCode = '+91'
 
   const enterPIPMode = () => {
@@ -54,35 +53,28 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
       const getRide = await AsyncStorage.getItem('currentRide');
       console.log('getrides ----------------------/ ', getRide)
       let currentRide = currentRideObj;
-
-      // if (reservationsJSON !== null) {
-      //   currentRide = JSON.parse(reservationsJSON);
-      // }
-
-      // currentRide = currentRideObj;
-
-      // const updatedReservationJSON = JSON.stringify(currentRide);
-      console.log('storeReservation--------------------->', currentRide)
-
       await AsyncStorage.setItem("currentRide", JSON.stringify(currentRide));
-
       console.log('Reservation stored successfully.', currentRide);
     } catch (error) {
       console.log('Error storing reservation:', error);
     }
   };
 
+  async function removeCurrentRide() {
+    await AsyncStorage.removeItem('currentRide');
+  }
+
   const updateReservation = async (reservationId, tripId, tripAmount) => {
     try {
       let currentRideObj = await AsyncStorage.getItem('currentRide');
       let reservationsJSON = await AsyncStorage.getItem('reservations');
       let reservations = (reservationsJSON && JSON.parse(reservationsJSON)?.length) ? JSON.parse(reservationsJSON) : [];
-      let currentRide = JSON.parse(currentRideObj);
+      let currentRide = currentRideObj ? JSON.parse(currentRideObj) : {};
       currentRide['tripid'] = tripId
       currentRide['tripamount'] = tripAmount
       reservations.push(currentRide);
       await AsyncStorage.setItem('reservations', JSON.stringify(reservations));
-      await AsyncStorage.removeItem('currentRide');
+      await removeCurrentRide();
     } catch (error) {
       console.log('Error updating reservation:', error);
     }
@@ -259,7 +251,6 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
     }
   }
 
-
   const [showLoader, setShowLoader] = useState(false)
 
   const handleClick = () => {
@@ -295,6 +286,10 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
 
     fetchSignatureResponse();
   }, []);
+
+  const closeRidecancelModal = () =>{
+    setShowRideCanceledModal(false)
+  }
 
 
   useEffect(() => {
@@ -380,7 +375,13 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
             updateReservation(bookingId, processPayload?.trip_id, processPayload?.trip_amount);
             console.log('process_call: wallet transaction ', processPayload)
             // HyperSdkReact.terminate();
-          } else if (processPayload?.action === 'feedback_submitted' || processPayload?.action === 'home_screen') {
+          } else if( processPayload?.ride_status === 'CANCELLED_PRODUCT') {
+            console.log('process_call: Ride canceled By the driver ', processPayload)
+            HyperSdkReact.terminate()
+            setModalVisible(true)
+            setShowRideCanceledModal(true)
+            removeCurrentRide()
+          }  else if (processPayload?.action === 'feedback_submitted' || processPayload?.action === 'home_screen') {
 
             console.log('process_call: wallet transaction ', processPayload);
             HyperSdkReact.terminate();
@@ -430,6 +431,7 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
           toggleModal={() => goBack()}
         />
       )}
+      <RideCanceledModal isModalVisible={showRideCanceledModal} onPressModalButton={closeRidecancelModal} hideModal={closeRidecancelModal}/>
     </View>
   )
 }

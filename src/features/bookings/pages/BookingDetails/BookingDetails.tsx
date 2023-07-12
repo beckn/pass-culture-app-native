@@ -43,6 +43,7 @@ import { api } from 'api/api'
 import { env } from 'libs/environment'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useBookingDetailsContext } from 'features/bookings/pages/BookingDetails/context/BookingDetailsContextProvider'
+import { RideCanceledModal } from 'features/travelOptions/components/RideCanceledModal/RideCanceledModal'
 
 //sdk specific
 
@@ -80,6 +81,7 @@ export function BookingDetails() {
   const { venue, id: offerId } = booking?.stock.offer ?? {}
   const { address, postalCode, city } = venue ?? {}
   const venueFullAddress = address ? formatFullAddress(address, postalCode, city) : undefined
+  const [showRideCanceledModal, setShowRideCanceledModal] = useState<boolean>(false)
 
   const { data: bookings } = useBookings()
   const { ended_bookings: endedBookings = emptyBookings } = bookings ?? {}
@@ -348,9 +350,6 @@ export function BookingDetails() {
     });
   }
 
-
-
-
   useEffect(() => {
     const fetchSignatureResponse = async () => {
       const { firstName } = await api.getnativev1me() || 'user'
@@ -383,7 +382,10 @@ export function BookingDetails() {
     }
     console.log('Updated processPayload2:', processPayload2Copy);
 
-
+    async function removeCurrentRide() {
+      await AsyncStorage.removeItem('currentRide');
+    }
+  
     const eventEmitter = new NativeEventEmitter(NativeModules.HyperSdkReact);
     const eventListener = eventEmitter.addListener('HyperEvent', (resp) => {
       const data = JSON.parse(resp);
@@ -444,6 +446,10 @@ export function BookingDetails() {
             updateReservation(bookingId, processPayload?.trip_id, processPayload?.trip_amount);
             console.log('process_call: wallet transaction ', processPayload);
             // HyperSdkReact.terminate();
+          } if( processPayload?.ride_status === 'CANCELLED_PRODUCT') {
+            console.log('process_call: Ride canceled By the driver ', processPayload)
+            setShowRideCanceledModal(true)
+            removeCurrentRide()
           } else if (processPayload?.action === 'feedback_submitted' || processPayload?.action === 'home_screen') {
 
             console.log('process_call: wallet transaction ', processPayload);
@@ -479,7 +485,9 @@ export function BookingDetails() {
     };
   }, [signatureResponse]);
 
-
+  const closeRidecancelModal = () =>{
+    setShowRideCanceledModal(false)
+  }
 
 
   const helmetTitle = `Ma réservation pour ${booking.stock.offer.name} | pass Culture`
@@ -559,6 +567,7 @@ export function BookingDetails() {
         bookingTitle={offer.name}
         onDismiss={hideArchiveModal}
       />
+      <RideCanceledModal isModalVisible={showRideCanceledModal} onPressModalButton={closeRidecancelModal} hideModal={closeRidecancelModal}/>
     </Container>
   )
 }

@@ -192,7 +192,7 @@ const TravelListModal = ({
                     <AccordianWrapper
                       isError={
                         paymentMode === 'Portefeuille...' &&
-                        walletBalance < minBalance &&
+                        walletBalance && walletBalance < minBalance &&
                         selectedItem
                       }>
                       <AccordionItem
@@ -202,7 +202,7 @@ const TravelListModal = ({
                         <TravelPaymentRadio
                           selectedItem={paymentMode}
                           walletBalance={walletBalance}
-                          onPress={(paymentMode) => handlePaymentSelection(paymentMode)}
+                          onPress={(paymentMode:String) => handlePaymentSelection(paymentMode)}
                         />
                         {/* <NoteContainer>
                           <Text style={noteTextStyle}>
