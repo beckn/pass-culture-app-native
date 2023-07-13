@@ -22,6 +22,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useBookingDetailsContext } from 'features/bookings/pages/BookingDetails/context/BookingDetailsContextProvider'
 import { any } from 'prop-types'
 import { el } from 'date-fns/locale'
+import { RideCanceledModal } from 'features/travelOptions/components/RideCanceledModal/RideCanceledModal'
 
 
 
@@ -36,6 +37,14 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
 
   const [mobileNumber, setMobileNumber] = useState()
   const mobileCountryCode = '+91'
+  const [showRideCanceledModal, setShowRideCanceledModal] = useState<boolean>(false)
+  const closeRidecancelModal = () => {
+    setShowRideCanceledModal(false)
+  }
+
+  async function removeCurrentRide() {
+    await AsyncStorage.removeItem('currentRide');
+  }
 
   // const enterPIPMode = () => {
 
@@ -47,6 +56,8 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
   //     }
   //   });
   // }
+
+
   const { bookingId } = route.params
 
   const storeReservation = async (currentRideObj) => {
@@ -142,7 +153,7 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
       }
     }
     fetchCurrentLocation()
-  }, [permissionState, showGeolocPermissionModal, currentLocation])
+  }, [permissionState, showGeolocPermissionModal, currentLocation, destLocation])
 
   function getAddressFromCoordinates(latitude, longitude) {
     const apiKey = 'AIzaSyDj_jBuujsEk8mkIva0xG6_H73oJEytXEA';
@@ -252,66 +263,15 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
   const handleClick = () => {
 
     console.log('handleClickfromtravleoptions')
-    setDisabled(true);
+    // setDisabled(true);
     setShowLoader(true);
-    console.log('isHyperSdkReactInitialised:', HyperSdkReact.isNull());
+    // console.log('isHyperSdkReactInitialised:', HyperSdkReact.isNull());
     if (HyperSdkReact.isNull()) {
       HyperSdkReact.createHyperServices();
-      console.log('isHyperSdkReactin iF:', HyperSdkReact.isNull());
-      HyperSdkReact.isInitialised().then((init) => {
-        console.log('isInitialised:', init);
-        if (init) {
-          HyperSdkReact.initiate(initiatePayload);
-        } else {
-          HyperSdkReact.terminate();
-          HyperSdkReact.createHyperServices();
-          HyperSdkReact.initiate(initiatePayload);
-
-        }
-      });
-    } else {
-      HyperSdkReact.isInitialised().then((init) => {
-        console.log('isInitialised:', init);
-        if (init) {
-
-          HyperSdkReact.terminate();
-          HyperSdkReact.createHyperServices();
-          HyperSdkReact.initiate(initiatePayload);
-        } else {
-          HyperSdkReact.terminate();
-          HyperSdkReact.createHyperServices();
-          HyperSdkReact.initiate(initiatePayload);
-          console.log('initiate: called');
-        }
-
-      });
     }
 
+    HyperSdkReact.initiate(initiatePayload);
 
-  }
-
-  const [signatureResponse, setSignatureResponse] = useState(null); // State to store the signature response
-
-  useEffect(() => {
-    const fetchSignatureResponse = async () => {
-      const { firstName } = (await api.getnativev1me()) || 'user'
-      const { phoneNumber } = (await api.getnativev1me()) || '+918297921333'
-      let mobile = phoneNumber?.slice(3, phoneNumber.length)
-      setMobileNumber(mobile);
-      getCoordinatesFromAddress(bookingAddress);
-      try {
-        const result = await HyperSDKModule.dynamicSign(firstName, mobile, mobileCountryCode)
-        setSignatureResponse(result)
-      } catch (error) {
-        // console.error(error);
-      }
-    };
-
-    fetchSignatureResponse();
-  }, []);
-
-
-  useEffect(() => {
     const process = { ...processPayload1 } // Create a copy of the processPayload2 object
 
     if (signatureResponse) {
@@ -405,20 +365,36 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
 
             updateReservation(processPayload?.trip_id, processPayload?.trip_amount);
 
-            // HyperSdkReact.terminate();
-          } else if (processPayload?.action === 'feedback_submitted' || processPayload?.action === 'home_screen') {
-
-            HyperSdkReact.terminate();
-            eventListener.remove()
+          } else if (processPayload?.ride_status === 'CANCELLED_PRODUCT') {
+            console.log('process_call: Ride canceled By the driver ', processPayload)
+            HyperSdkReact.terminate()
             setModalVisible(true)
-            navigateToHome()
+            setShowRideCanceledModal(true)
+            removeCurrentRide()
+            eventListener.remove()
+          } else if (processPayload?.action === 'feedback_submitted' || processPayload?.action === 'home_screen') {
+            rideUpdates(processPayload?.trip_id, processPayload?.trip_amount)
+
+            console.log('process_call: wallet transaction ', processPayload);
+            HyperSdkReact.terminate();
+            setModalVisible(true)
+            eventListener.remove()
           }
+
+          // HyperSdkReact.terminate();
+          // } else if (processPayload?.action === 'feedback_submitted' || processPayload?.action === 'home_screen') {
+
+          //   HyperSdkReact.terminate();
+          //   eventListener.remove()
+          //   setModalVisible(true)
+          //   navigateToHome()
+          // }
 
           if (processPayload?.screen === 'home_screen') {
             HyperSdkReact.terminate()
             eventListener.remove()
             setModalVisible(true)
-            navigateToHome()
+            // navigateToHome()
           } else if (processPayload?.screen === 'trip_started_screen') {
             // BackHandler.exitApp();
             // enterPIPMode();
@@ -445,11 +421,42 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
     //   backhandler.remove();
     // };
 
-    return () => {
-      eventListener.remove()
-      BackHandler.removeEventListener('hardwareBackPress', () => null)
+    // return () => {
+    //   eventListener.remove()
+    //   BackHandler.removeEventListener('hardwareBackPress', () => null)
+    // }
+
+
+  }
+
+  const [signatureResponse, setSignatureResponse] = useState(null); // State to store the signature response
+
+  useEffect(() => {
+    const fetchSignatureResponse = async () => {
+      const { firstName } = (await api.getnativev1me()) || 'user'
+      const { phoneNumber } = (await api.getnativev1me()) || '+918297921333'
+      let mobile = phoneNumber?.slice(3, phoneNumber.length)
+      setMobileNumber(mobile);
+      getCoordinatesFromAddress(bookingAddress);
+      try {
+        const result = await HyperSDKModule.dynamicSign(firstName, mobile, mobileCountryCode)
+        setSignatureResponse(result)
+      } catch (error) {
+        // console.error(error);
+      }
+    };
+
+    fetchSignatureResponse();
+  }, []);
+
+  const rideUpdates = async (trip_id, trip_amount) => {
+    const cr = await AsyncStorage.getItem('currentRide')
+    if (cr) {
+      updateReservation(trip_id, trip_amount);
     }
-  }, [signatureResponse, destLocation])
+  }
+
+
 
   return (
     <View style={{ flex: 1 }}>
@@ -469,6 +476,7 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
           toggleModal={(value: boolean) => goBack()}
         />
       )}
+      <RideCanceledModal isModalVisible={showRideCanceledModal} onPressModalButton={closeRidecancelModal} hideModal={closeRidecancelModal} />
     </View>
   )
 }

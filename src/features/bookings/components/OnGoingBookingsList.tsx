@@ -36,6 +36,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { env } from 'libs/environment'
 import { api } from 'api/api'
 import HyperSdkReact from 'hyper-sdk-react'
+import { RideCanceledModal } from 'features/travelOptions/components/RideCanceledModal/RideCanceledModal'
 
 const emptyBookings: Booking[] = []
 
@@ -59,6 +60,13 @@ export function OnGoingBookingsList() {
   const [mobileNumber, setMobileNumber] = useState()
   const mobileCountryCode = '+91'
   const [reservedRides, setReserveRides] = useState([])
+  const [showRideCanceledModal, setShowRideCanceledModal] = useState<boolean>(false)
+  const closeRidecancelModal = () => {
+    setShowRideCanceledModal(false)
+  }
+  async function removeCurrentRide() {
+    await AsyncStorage.removeItem('currentRide');
+  }
 
   const {
     ongoing_bookings: ongoingBookings = emptyBookings,
@@ -200,75 +208,11 @@ export function OnGoingBookingsList() {
       },
     },
   }
+  const [signatureResponse, setSignatureResponse] = useState(null)
 
-
-  const [destLocation, setDestLocation] = useState()
-
-  const getReservationsByCommonKey = async (commonKey) => {
-    try {
-      const currentRide = await AsyncStorage.getItem('currentRide')
-      const currentRideObj = JSON.parse(currentRide);
-      setDestLocation(currentRide)
-      console.log('currentRide', currentRide);
-      return Object.keys(currentRideObj).length ? [currentRideObj] : []
-    } catch (error) {
-      console.log('Error retrieving reservations:', error)
-      return []
-    }
-  }
-
-  const [signatureResponse, setSignatureResponse] = useState(null) // State to store the signature response
-
-
-  const handleClick = () => {
-    console.log('handleClickfromongoingbooking')
-    // setActiveScreen('OnGoingBookingsList');
-    console.log('isHyperSdkReactInitialised:', HyperSdkReact.isNull());
-    if (HyperSdkReact.isNull()) {
-      HyperSdkReact.createHyperServices();
-      console.log('isHyperSdkReactin iF:', HyperSdkReact.isNull());
-      HyperSdkReact.isInitialised().then((init) => {
-        console.log('isInitialised:', init);
-        if (init) {
-          HyperSdkReact.initiate(initiatePayload);
-        } else {
-          HyperSdkReact.terminate();
-          HyperSdkReact.createHyperServices();
-          HyperSdkReact.initiate(initiatePayload);
-
-        }
-        // HyperSdkReact.createHyperServices();
-        // HyperSdkReact.initiate(initiatePayload);
-      });
-    } else {
-      HyperSdkReact.isInitialised().then((init) => {
-        console.log('isInitialised:', init);
-        if (init) {
-
-          HyperSdkReact.terminate();
-          HyperSdkReact.initiate(initiatePayload);
-        } else {
-          HyperSdkReact.terminate();
-          HyperSdkReact.initiate(initiatePayload);
-          console.log('initiate: called');
-        }
-      });
-    }
-
-
-    // if (HyperSdkReact.isNull()) {
-    //   HyperSdkReact.createHyperServices();
-    // }
-    // HyperSdkReact.initiate(initiatePayload);
-
-  }
-
-  const refreshData = async (mobile) => {
-    const rideData = await getReservationsByCommonKey(mobile)
-    setReserveRides(rideData)
-  }
 
   useEffect(() => {
+
     const fetchSignatureResponse = async () => {
       const { firstName } = (await api.getnativev1me()) || 'user'
       const { phoneNumber } = (await api.getnativev1me()) || '+918297921333'
@@ -288,131 +232,192 @@ export function OnGoingBookingsList() {
       fetchLocalRides()
 
     }
-
     fetchSignatureResponse()
 
   }, [isFetching])
+  const [destLocation, setDestLocation] = useState()
 
-  const [activeScreen, setActiveScreen] = useState(null);
-  //   event handlers for the sdk event
-
-  useEffect(() => {
-    const process3 = { ...processPayload3 } // Create a copy of the processPayload2 object
-    setActiveScreen('OnGoingBookingsList');
-    if (signatureResponse) {
-      process3.payload.signatureAuthData.signature = signatureResponse.signature
-      process3.payload.signatureAuthData.authData = signatureResponse.signatureAuthData
+  const getReservationsByCommonKey = async (commonKey) => {
+    try {
+      const currentRide = await AsyncStorage.getItem('currentRide')
+      const currentRideObj = JSON.parse(currentRide);
+      setDestLocation(currentRide)
+      console.log('currentRide', currentRide);
+      return Object.keys(currentRideObj).length ? [currentRideObj] : []
+    } catch (error) {
+      console.log('Error retrieving reservations:', error)
+      return []
     }
+  }
+
+  // State to store the signature response
+  const rideUpdates = async (trip_id, trip_amount) => {
+    const cr = await AsyncStorage.getItem('currentRide')
+    if (cr) {
+      updateReservation(trip_id, trip_amount);
+    }
+  }
+
+  const handleClick = async () => {
+
+    let result;
+    const { firstName } = (await api.getnativev1me()) || 'user'
+    const { phoneNumber } = (await api.getnativev1me()) || '+918297921333'
+    let mobile = phoneNumber?.slice(3, phoneNumber.length)
+    setMobileNumber(mobile)
+    try {
+      result = await HyperSDKModule.dynamicSign(firstName, mobile, mobileCountryCode)
+      // setSignatureResponse(result)
+      console.log('signauth_check_from_handle', result)
+    } catch (error) {
+      console.error(error)
+    }
+
+
+
+    console.log('isHyperSdkReactInitialised:', HyperSdkReact.isNull());
+    if (HyperSdkReact.isNull()) {
+      HyperSdkReact.createHyperServices();
+    }
+    HyperSdkReact.initiate(initiatePayload);
+    console.log('handleClickfromongoingbooking', signatureResponse)
+    const process3 = { ...processPayload3 } // Create a copy of the processPayload2 object
+    // setActiveScreen('OnGoingBookingsList');
+
+    process3.payload.signatureAuthData.signature = result.signature
+    process3.payload.signatureAuthData.authData = result.signatureAuthData
     // if (destLocation) {
     //   process3.payload.destination.lat = destLocation.lat;
-    //   process3.payload.destination.lon = destLocation.lng;
+    //   process3.payload.destination.lon = des tLocation.lng;
     //   process3.payload.destination.name = destLocation.name || '';
     // }
     console.log('Updated processPayload2:', process3)
-    console.log('activeScreenfrom', activeScreen)
+
     const eventEmitter1 = new NativeEventEmitter(NativeModules.HyperSdkReact)
     let eventListener1;
 
-    if (activeScreen === 'OnGoingBookingsList') {
-      eventListener1 = eventEmitter1.addListener('HyperEvent', async (resp) => {
-        const data = JSON.parse(resp)
-        const event = data.event || ''
-        console.log('event_call_OnGoingBooking: is called ', event)
-        switch (event) {
-          case 'show_loader':
-            // show some loader here
-            break
+    eventListener1 = eventEmitter1.addListener('HyperEvent', async (resp) => {
+      const data = JSON.parse(resp)
+      const event = data.event || ''
+      console.log('event_call_OnGoingBooking: is called ', event)
+      switch (event) {
+        case 'show_loader':
+          // show some loader here
+          break
 
-          case 'hide_loader':
-            // hide the loader
-            break
+        case 'hide_loader':
+          // hide the loader
+          break
 
-          case 'initiate_result':
-            const payload = data.payload || {}
-            const res = payload ? payload.status : payload
+        case 'initiate_result':
+          const payload = data.payload || {}
+          const res = payload ? payload.status : payload
 
-            if (res === 'SUCCESS') {
-              // Initiation is successful, call process method
-              if (process3.payload.signatureAuthData != undefined) {
-                HyperSdkReact.process(JSON.stringify(process3))
-              } else {
-                alert('Invalid signature')
-              }
-              // HyperSdkReact.process(JSON.stringify(processPayload2));
-              console.log('process_call: is called ', payload)
+          if (res === 'SUCCESS') {
+            // Initiation is successful, call process method
+            if (process3.payload.signatureAuthData != undefined) {
+              HyperSdkReact.process(JSON.stringify(process3))
             } else {
-              // Handle initiation failure
-              console.log('Initiation failed.')
+              alert('Invalid signature')
             }
-            break
+            // HyperSdkReact.process(JSON.stringify(processPayload2));
+            console.log('process_call: is called ', payload)
+          } else {
+            // Handle initiation failure
+            console.log('Initiation failed.')
+          }
+          break
 
-          case 'process_result':
-            const processPayload = data.payload || {}
-            console.log('process_result: ', processPayload)
-            const process_result = data.payload || {}
-            console.log('process_result: ', process_result);
-            switch (process_result) {
-              case 'home_screen':
-                HyperSdkReact.terminate()
-
-            }
-
-            // Handle process result
-            if (processPayload?.action === 'terminate' && processPayload?.screen === 'home_screen') {
+        case 'process_result':
+          const processPayload = data.payload || {}
+          console.log('process_result: ', processPayload)
+          const process_result = data.payload || {}
+          console.log('process_result: ', process_result);
+          switch (process_result) {
+            case 'home_screen':
               HyperSdkReact.terminate()
               eventListener1.remove()
-              console.log('process_call: is called ', processPayload)
-            } else if (processPayload?.ride_status === 'TRIP_FINISHED') {
-              //function call for wallet transaction
 
-              await updateReservation(processPayload?.trip_id, processPayload?.trip_amount);
-              console.log('process_call: wallet transaction ---------------------------> ', processPayload)
-              refreshData(mobileNumber);
-              // HyperSdkReact.terminate();
-            } else if (
-              processPayload?.action === 'feedback_submitted' || processPayload?.screen === 'home_screen') {
-              console.log('process_call: wallet transaction ', processPayload)
-              HyperSdkReact.terminate()
-              eventListener1.remove()
-              refreshData(mobileNumber);
-            }
+          }
 
-            if (processPayload?.screen === 'home_screen') {
-              HyperSdkReact.terminate()
-              eventListener1.remove()
-            } else if (processPayload?.screen === 'trip_started_screen') {
+          // Handle process result
+          if (processPayload?.action === 'terminate' && processPayload?.screen === 'home_screen') {
+            HyperSdkReact.terminate()
+            eventListener1.remove()
+            console.log('process_call: is called ', processPayload)
+          } else if (processPayload?.ride_status === 'TRIP_FINISHED') {
+            //function call for wallet transaction
 
-            }
-            console.log('process_call: process ', processPayload)
+            await updateReservation(processPayload?.trip_id, processPayload?.trip_amount);
+            console.log('process_call: wallet transaction ---------------------------> ', processPayload)
+            refreshData(mobileNumber);
+            // HyperSdkReact.terminate();
+          } else if (processPayload?.ride_status === 'CANCELLED_PRODUCT') {
+            console.log('process_call: Ride canceled By the driver11111 ', processPayload)
+            HyperSdkReact.terminate()
+            setShowRideCanceledModal(true)
+            removeCurrentRide()
+            eventListener1.remove()
+            refreshData(mobileNumber)
+          } else if (
+            processPayload?.action === 'feedback_submitted' || processPayload?.screen === 'home_screen') {
+            console.log('process_call: wallet transaction ', processPayload)
+            rideUpdates(processPayload?.trip_id, processPayload?.trip_amount)
+            HyperSdkReact.terminate()
+            eventListener1.remove()
+            console.log('process_call:feedback_submitted ---------------------------> ', processPayload)
+            refreshData(mobileNumber);
+          }
+          // else if (
+          //   processPayload?.action === 'feedback_submitted' || processPayload?.screen === 'home_screen') {
+          //   console.log('process_call: wallet transaction ', processPayload)
+          //   HyperSdkReact.terminate()
+          //   eventListener1.remove()
+          //   refreshData(mobileNumber);
+          // }
 
-            break
+          if (processPayload?.screen === 'home_screen') {
+            HyperSdkReact.terminate()
+            eventListener1.remove()
+          } else if (processPayload?.screen === 'trip_started_screen') {
 
-          default:
-            console.log('Unknown Event', data)
-        }
+          }
+          console.log('process_call: process ', processPayload)
 
-      })
-    }
+          break
+
+        default:
+          console.log('Unknown Event', data)
+      }
+
+    })
+
     BackHandler.addEventListener('hardwareBackPress', () => {
       return !HyperSdkReact.isNull() && HyperSdkReact.onBackPressed()
     })
 
-    return () => {
-      setActiveScreen(null);
-      if (eventListener1) {
-        eventListener1.remove();
-      }
-      BackHandler.removeEventListener('hardwareBackPress', () => null)
-    }
-  }, [signatureResponse, activeScreen, destLocation])
+    // return () => {
+    //   setActiveScreen(null);
+    //   if (eventListener1) {
+    //     eventListener1.remove();
+    //   }
+    //   BackHandler.removeEventListener('hardwareBackPress', () => null)
+    // }
 
-  useEffect(() => {
-    setActiveScreen('OnGoingBookingsList');
 
-    return () => {
-      setActiveScreen(null);
-    };
-  }, []);
+  }
+
+  const refreshData = async (mobile) => {
+    const rideData = await getReservationsByCommonKey(mobile)
+    setReserveRides(rideData)
+  }
+
+
+
+  const [activeScreen, setActiveScreen] = useState(null);
+  //   event handlers for the sdk event
+
+
 
   const refetchOffline = useCallback(() => {
     showErrorSnackBar({
@@ -459,11 +464,12 @@ export function OnGoingBookingsList() {
 
   const renderItem: ListRenderItem<any> = useCallback(
     ({ item }) =>
-      item.reservationid ? (
+      item.commonKey ? (
         <RideBookingItem booking={item} onRideClick={handleClick} />
       ) : (
         <OnGoingBookingItem
           booking={item}
+          // onPressItem={handleListener}
           eligibleBookingsForArchive={eligibleBookingsForArchive}
         />
       ),
@@ -491,6 +497,7 @@ export function OnGoingBookingsList() {
         onScroll={onScroll}
         scrollEventThrottle={400}
       />
+      <RideCanceledModal isModalVisible={showRideCanceledModal} onPressModalButton={closeRidecancelModal} hideModal={closeRidecancelModal} />
     </Container>
   )
 }
