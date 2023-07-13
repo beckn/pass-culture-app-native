@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { Platform, ScrollView, useWindowDimensions, NativeModules, NativeEventEmitter, BackHandler } from 'react-native'
 import { useQueryClient } from 'react-query'
 import styled from 'styled-components/native'
+import { navigateToHome } from 'features/navigation/helpers'
 import { GeolocPermissionState, useGeolocation } from 'libs/geolocation'
 import { useBookings, useOngoingOrEndedBooking } from 'features/bookings/api'
 import { ArchiveBookingModal } from 'features/bookings/components/ArchiveBookingModal'
@@ -45,6 +46,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useBookingDetailsContext } from 'features/bookings/pages/BookingDetails/context/BookingDetailsContextProvider'
 import { RideCanceledModal } from 'features/travelOptions/components/RideCanceledModal/RideCanceledModal'
 
+import { getTabNavConfig } from 'features/navigation/TabBar/helpers'
+import { useGoBack } from 'features/navigation/useGoBack'
 //sdk specific
 
 const { HyperSDKModule } = NativeModules;
@@ -86,7 +89,8 @@ export function BookingDetails() {
   const { data: bookings } = useBookings()
   const { ended_bookings: endedBookings = emptyBookings } = bookings ?? {}
   const { showInfoSnackBar, showErrorSnackBar } = useSnackBarContext()
-
+  // console.log('venue-details', venue)
+  // console.log('offerId', offerId)
   const { navigate } = useNavigation<UseNavigationType>()
 
   // Allows to display a message in case of refresh specifying the cancellation
@@ -110,6 +114,7 @@ export function BookingDetails() {
   )
 
   const { headerTransition, onScroll } = useOpacityTransition({
+
     listener: ({ nativeEvent }) => {
       if (isCloseToBottom(nativeEvent)) logConsultWholeBooking()
     },
@@ -276,13 +281,13 @@ export function BookingDetails() {
       let currentRideObj = await AsyncStorage.getItem('currentRide');
       let reservationsJSON = await AsyncStorage.getItem('reservations');
       let reservations = (reservationsJSON && JSON.parse(reservationsJSON)?.length) ? JSON.parse(reservationsJSON) : [];
-      let currentRide =  JSON.parse(currentRideObj);
+      let currentRide = JSON.parse(currentRideObj);
       currentRide['tripid'] = tripId
       currentRide['tripamount'] = tripAmount
       reservations.push(currentRide);
-      await AsyncStorage.setItem('reservations',JSON.stringify(reservations));
+      await AsyncStorage.setItem('reservations', JSON.stringify(reservations));
       await AsyncStorage.removeItem('currentRide');
-        console.log('No reservations found.');
+      console.log('No reservations found.');
     } catch (error) {
       console.log('Error updating reservation:', error);
     }
@@ -318,12 +323,12 @@ export function BookingDetails() {
       source: {
         lat: currentLocation?.latitude,
         lon: currentLocation?.longitude,
-        name: currentAddress,
+        name: currentAddress || '1er, Tour Eiffel, Av. Gustave Eiffel, 75007 Paris, France',
       },
       destination: {
-        lat: 48.8606,
-        lon: 2.3376,
-        name: destAddress
+        lat: venue?.coordinates?.latitude || 48.212,
+        lon: venue?.coordinates?.longitude || 2.212,
+        name: venue?.address || ' ',
       },
     }
   }
@@ -336,19 +341,50 @@ export function BookingDetails() {
 
   const [signatureResponse, setSignatureResponse] = useState(null); // State to store the signature response
 
-
+  const [disabled, setDisabled] = useState(false);
 
   const viewTripDetails = () => {
-    console.log('ACTION: View trip clicked')
+    console.log('handleClickfromBookingDetails')
+    setDisabled(true);
+    console.log('isHyperSdkReactInitialised:', HyperSdkReact.isNull());
     if (HyperSdkReact.isNull()) {
       HyperSdkReact.createHyperServices();
-    }
+      console.log('isHyperSdkReactin iF:', HyperSdkReact.isNull());
+      HyperSdkReact.isInitialised().then((init) => {
+        console.log('isInitialised:', init);
+        if (init) {
+          HyperSdkReact.initiate(initiatePayload);
+          console.log('isInitialised:if', init);
+        } else {
+          // HyperSdkReact.terminate();
+          setActiveScreen('BookingDetails');
+          HyperSdkReact.initiate(initiatePayload);
+          console.log('isInitialised:else block', init);
+        }
+      });
+    } else {
+      HyperSdkReact.isInitialised().then((init) => {
+        console.log('isInitialised:', init);
+        if (init) {
 
-    HyperSdkReact.initiate(initiatePayload);
-    HyperSdkReact.isInitialised().then((init) => {
-      console.log('isInitialised:', init);
-    });
+          HyperSdkReact.terminate();
+          HyperSdkReact.createHyperServices();
+          HyperSdkReact.initiate(initiatePayload);
+        } else {
+          HyperSdkReact.terminate();
+          HyperSdkReact.createHyperServices();
+          HyperSdkReact.initiate(initiatePayload);
+          console.log('initiate: called');
+        }
+
+      });
+    }
   }
+
+  const [activeScreen, setActiveScreen] = useState(null);
+  // const { goBackto } = useGoBack(...getTabNavConfig('Bookings'))
+
+
 
   useEffect(() => {
     const fetchSignatureResponse = async () => {
@@ -371,65 +407,113 @@ export function BookingDetails() {
   }, []);
 
 
+  async function removeCurrentRide() {
+    await AsyncStorage.removeItem('currentRide');
+  }
+
   useEffect(() => {
 
-    const processPayload2Copy = { ...processPayload2 }; // Create a copy of the processPayload2 object
+    const process2 = { ...processPayload2 }; // Create a copy of the processPayload2 object
 
     if (signatureResponse) {
-      processPayload2Copy.payload.signatureAuthData.signature = signatureResponse.signature;
-      processPayload2Copy.payload.signatureAuthData.authData = signatureResponse.signatureAuthData;
+      process2.payload.signatureAuthData.signature = signatureResponse.signature;
+      process2.payload.signatureAuthData.authData = signatureResponse.signatureAuthData;
 
     }
-    console.log('Updated processPayload2:', processPayload2Copy);
 
-    async function removeCurrentRide() {
-      await AsyncStorage.removeItem('currentRide');
+    if (currentAddress) {
+      process2.payload.source.name = currentAddress;
+
     }
-  
-    const eventEmitter = new NativeEventEmitter(NativeModules.HyperSdkReact);
-    const eventListener = eventEmitter.addListener('HyperEvent', (resp) => {
-      const data = JSON.parse(resp);
-      const event = data.event || '';
-      console.log('event_call: is called ', event);
-      switch (event) {
-        case 'show_loader':
-          // show some loader here
-          break;
+    console.log('Updated processPayload2:', process2);
 
-        case 'hide_loader':
-          // hide the loader
-          break;
 
-        case 'initiate_result':
-          const payload = data.payload || {};
-          const res = payload ? payload.status : payload;
-          console.log('initiate_result: ', processPayload2);
-          if (res === 'SUCCESS') {
-            // setModalVisible(false)
-            // Initiation is successful, call process method
-            if (processPayload2.payload.signatureAuthData != undefined) {
-              HyperSdkReact.process(JSON.stringify(processPayload2));
+    const eventEmitter2 = new NativeEventEmitter(NativeModules.HyperSdkReact);
+    let eventListener2;
+
+    if (activeScreen === 'BookingDetails') {
+      eventListener2 = eventEmitter2.addListener('HyperEvent', (resp) => {
+        const data = JSON.parse(resp);
+        const event = data.event || '';
+        console.log('event_call_BookingDetails: is called ', event);
+        switch (event) {
+          case 'show_loader':
+            // show some loader here  
+            break;
+
+          case 'hide_loader':
+            // hide the loader
+            break;
+
+          case 'initiate_result':
+            const payload = data.payload || {};
+            const res = payload ? payload.status : payload;
+            console.log('initiate_result: ', processPayload2);
+            if (res === 'SUCCESS') {
+              // setModalVisible(false)
+              // Initiation is successful, call process method
+              if (process2.payload.signatureAuthData != undefined) {
+                HyperSdkReact.process(JSON.stringify(process2));
+              } else {
+                alert('Invalid signature');
+              }
+              // HyperSdkReact.process(JSON.stringify(processPayload2));
+              console.log('process_call: is called ', payload);
             } else {
-              alert('Invalid signature');
+              // Handle initiation failure
+              // setModalVisible(true)
+              console.log('Initiation failed.');
             }
-            // HyperSdkReact.process(JSON.stringify(processPayload2));
-            console.log('process_call: is called ', payload);
-          } else {
-            // Handle initiation failure
-            // setModalVisible(true)
-            console.log('Initiation failed.');
-          }
-          break;
+            break;
+
+          case 'process_result':
+            const process_result = data.payload || {}
+            console.log('process_result: ', process_result);
+            switch (process_result) {
+              case 'home_screen':
+                HyperSdkReact.terminate()
+                navigateToHome()
+                console.log('sdkbackpressswitch');
+
+            }
+
+            // case 'trip_status':
+            const processPayload = data.payload || {};
+            console.log('process_result: ', processPayload);
+            if (processPayload?.status === 'TRIP_FINISHED') {
+              //function call for wallet transaction
+              const reservation1 = {
+                reservationid: bookingId,
+                tripid: processPayload?.trip_id,
+                tripamount: processPayload?.trip_amount,
+                source: processPayload2.payload.source,
+                destination: processPayload2.payload.destination,
+                tripdate: new Date(),
+                commonKey: mobileNumber,
+              };
+              // storeReservation(reservation1);
+              updateReservation(bookingId, processPayload?.trip_id, processPayload?.trip_amount);
+              console.log('process_call: wallet transaction ', processPayload);
+              // HyperSdkReact.terminate();
+            } else if (processPayload?.action === 'feedback_submitted' || processPayload?.action === 'home_screen') {
+
+              console.log('process_call: wallet transaction ', processPayload);
+              HyperSdkReact.terminate();
+              eventListener2.remove()
+              navigateToHome()
+              console.log('sdkbackpresfeedback');
+              // setModalVisible(true)
+            }
 
 
+            if (processPayload?.screen === 'home_screen') {
+              HyperSdkReact.terminate();
+              eventListener2.remove()
+              navigateToHome()
 
-        case 'trip_status':
-          const processPayload = data.payload || {};
-          console.log('process_result: ', processPayload);
-          // Handle process result
-          if (processPayload?.action === 'terminate' && processPayload?.screen === 'home_screen') {
-            HyperSdkReact.terminate();
-            // console.log('process_call: is called ', processPayload);
+              console.log('sdkbackpressIF');
+              // setModalVisible(true)
+            } else if (processPayload?.screen === 'trip_started_screen') {
 
           } else if (processPayload?.status === 'TRIP_FINISHED') {
             //function call for wallet transaction
@@ -458,29 +542,23 @@ export function BookingDetails() {
           }
 
 
-          if (processPayload?.screen === 'home_screen') {
-            HyperSdkReact.terminate();
-            // setModalVisible(true)
-          } else if (processPayload?.screen === 'trip_started_screen') {
-            BackHandler.exitApp();
-          }
-          console.log('process_call: process ', processPayload);
+            break;
 
-
-          break;
-
-        default:
-          console.log('Unknown Event', data);
-      }
-    });
+          default:
+            console.log('Unknown Event', data);
+        }
+      });
+    }
 
     BackHandler.addEventListener('hardwareBackPress', () => {
       return !HyperSdkReact.isNull() && HyperSdkReact.onBackPressed();
     });
 
     return () => {
-
-      eventListener.remove();
+      setActiveScreen(null);
+      if (eventListener2) {
+        eventListener2.remove();
+      }
       BackHandler.removeEventListener('hardwareBackPress', () => null);
     };
   }, [signatureResponse]);
@@ -488,6 +566,14 @@ export function BookingDetails() {
   const closeRidecancelModal = () =>{
     setShowRideCanceledModal(false)
   }
+
+  useEffect(() => {
+    setActiveScreen('BookingDetails');
+
+    return () => {
+      setActiveScreen(null);
+    };
+  }, []);
 
 
   const helmetTitle = `Ma réservation pour ${booking.stock.offer.name} | pass Culture`
@@ -553,6 +639,7 @@ export function BookingDetails() {
             onTerminate={showArchiveModal}
             onViewTripDetails={viewTripDetails}
             fullWidth
+            disabled={disabled}
           />
         </ViewWithPadding>
         <Spacer.Column numberOfSpaces={5} />
@@ -561,6 +648,7 @@ export function BookingDetails() {
       <BookingDetailsHeader headerTransition={headerTransition} title={offer.name} />
 
       <CancelBookingModal visible={cancelModalVisible} dismissModal={hideModal} booking={booking} />
+
       <ArchiveBookingModal
         visible={archiveModalVisible}
         bookingId={booking.id}

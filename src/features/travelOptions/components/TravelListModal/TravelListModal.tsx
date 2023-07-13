@@ -13,12 +13,14 @@ import { ImageTile } from 'ui/components/ImageTile'
 import TravelPaymentRadio from 'features/travelOptions/components/RadioButton/RadioButton'
 import { ModalLoader } from 'features/travelOptions/components/ModalLoader/ModalLoader'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { Disabled } from 'ui/components/IconWithCaption.stories'
 
 interface TravelListModalInterface {
   toggleModal: () => void
   onProceed: () => void
   visible: boolean
   showLoader: boolean
+  disabled: boolean
 }
 
 const TravelListModal = ({
@@ -26,6 +28,7 @@ const TravelListModal = ({
   visible,
   onProceed,
   showLoader,
+  disabled,
 }: TravelListModalInterface) => {
   const [selectedItem, setSelectedItem] = useState('')
   const [accordianStatus, setAccordianStatus] = useState(false)
@@ -219,6 +222,7 @@ const TravelListModal = ({
                 wording={'Procéder'}
                 onPress={handleClick}
                 isDisabled={
+                  disabled ||
                   showLoader ||
                   !selectedItem ||
                   !paymentMode ||
