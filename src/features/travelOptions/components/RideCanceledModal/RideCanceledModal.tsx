@@ -27,12 +27,12 @@ export const RideCanceledModal: React.FC<Props> = ({
       <MainContainer>
         <ModalImage source={require('../../assets/images/RideCanceledImage.png')}  />
         <TitleText>
-            Votre voyage a été annulé
+            Votre trajet a été annulé
         </TitleText>
         <Spacer.Column numberOfSpaces={5} />
        
         <InformationText>
-           Nous sommes désolés, mais votre voyage a été annulé. Pour reprogrammer le voyage, veuillez réessayer.
+            Nous sommes désolés, mais votre trajet a été annulé. Pour reprogrammer la course, veuillez réessayer.
         </InformationText>
         <Spacer.Column numberOfSpaces={8} />
         
