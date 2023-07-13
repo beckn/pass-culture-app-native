@@ -240,10 +240,10 @@ export function OnGoingBookingsList() {
   const getReservationsByCommonKey = async (commonKey) => {
     try {
       const currentRide = await AsyncStorage.getItem('currentRide')
-      const currentRideObj = JSON.parse(currentRide);
+      const currentRideObj = currentRide ?  JSON.parse(currentRide) : {};
       setDestLocation(currentRide)
       console.log('currentRide', currentRide);
-      return Object.keys(currentRideObj).length ? [currentRideObj] : []
+      return Object.keys(currentRideObj).length && commonKey === currentRideObj.commonKey ? [currentRideObj] : []
     } catch (error) {
       console.log('Error retrieving reservations:', error)
       return []
@@ -286,6 +286,10 @@ export function OnGoingBookingsList() {
 
     process3.payload.signatureAuthData.signature = result.signature
     process3.payload.signatureAuthData.authData = result.signatureAuthData
+    process3.payload.source.lat = currentLocation?.latitude
+    process3.payload.source.lon = currentLocation?.longitude
+    process3.payload.source.name= currentAddress,
+    
     // if (destLocation) {
     //   process3.payload.destination.lat = destLocation.lat;
     //   process3.payload.destination.lon = des tLocation.lng;
