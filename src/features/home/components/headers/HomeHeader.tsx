@@ -26,23 +26,24 @@ import HyperSdkReact from 'hyper-sdk-react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
-const { PIPModule } = NativeModules;
+// const { PIPModule } = NativeModules;
 const { HyperSDKModule } = NativeModules
 
-HyperSdkReact.createHyperServices();
 
 export const HomeHeader: FunctionComponent = function () {
 
-  const enterPIPMode = () => {
+  // const enterPIPMode = () => {
 
-    PIPModule.isPictureInPictureSupported().then(supported => {
-      if (supported) {
-        PIPModule.enterPictureInPictureMode();
-      } else {
-        console.warn('Picture-in-Picture is not supported on this device.');
-      }
-    });
-  }
+  //   PIPModule.isPictureInPictureSupported().then(supported => {
+  //     if (supported) {
+  //       PIPModule.enterPictureInPictureMode();
+  //     } else {
+  //       console.warn('Picture-in-Picture is not supported on this device.');
+  //     }
+  //   });
+  // }
+
+
   const preFetchPayload = {
     "service": "in.yatri.consumer",
     "payload": {
@@ -50,15 +51,32 @@ export const HomeHeader: FunctionComponent = function () {
     }
   }
   HyperSdkReact.preFetch(JSON.stringify(preFetchPayload));
-  console.log(JSON.stringify(preFetchPayload), 'prefetch initialization');
 
+  console.log(JSON.stringify(preFetchPayload), 'prefetch initialization');
   const navigation = useNavigation<UseNavigationType>()
   const availableCredit = useAvailableCredit()
   const { top } = useCustomSafeInsets()
   const { isLoggedIn, user } = useAuthContext()
 
-  const { permissionState } = useGeolocation()
+  const { permissionState, showGeolocPermissionModal } = useGeolocation()
   const isGeolocated = permissionState === GeolocPermissionState.GRANTED
+  useEffect(() => {
+    const fetchCurrentLocation = async () => {
+      try {
+        if (permissionState === GeolocPermissionState.GRANTED) {
+
+        } else {
+          showGeolocPermissionModal()
+        }
+      } catch (error) {
+        console.error('Error getting current location:', error)
+      }
+    }
+    fetchCurrentLocation()
+  }, [permissionState, showGeolocPermissionModal])
+
+
+
   const { data } = useHomeBanner(isGeolocated)
   const homeBanner = data?.banner
 
@@ -87,6 +105,7 @@ export const HomeHeader: FunctionComponent = function () {
   // const deleteAllReservations = async () => {
   //   try {
   //     await AsyncStorage.removeItem('reservations');
+  //     await AsyncStorage.removeItem('currentRide');
   //     console.log('All reservations deleted successfully.');
   //   } catch (error) {
   //     console.log('Error deleting reservations:', error);
@@ -133,12 +152,12 @@ export const HomeHeader: FunctionComponent = function () {
         </BannerContainer>
       )
 
-    if (homeBanner?.name === BannerName.geolocation_banner)
-      return (
-        <BannerContainer>
-          <GeolocationBanner title={homeBanner.title} subtitle={homeBanner.text} />
-        </BannerContainer>
-      )
+    // if (homeBanner?.name === BannerName.geolocation_banner)
+    //   return (
+    //     <BannerContainer>
+    //       <GeolocationBanner title={homeBanner.title} subtitle={homeBanner.text} />
+    //     </BannerContainer>
+    //   )
 
     if (homeBanner?.name === BannerName.retry_identity_check_banner)
       return (
@@ -173,7 +192,7 @@ export const HomeHeader: FunctionComponent = function () {
       <PageHeader title={welcomeTitle} numberOfLines={2} />
       <PageContent>
         {/* <Typo.Body>{getSubtitle()}</Typo.Body> */}
-        <Button title="Enter PIP Mode" onPress={enterPIPMode} />
+        {/* <Button title="Enter PIP Mode" onPress={enterPIPMode} /> */}
         {/* <Button onPress={handleClick} title="Click here" /> */}
         <Spacer.Column numberOfSpaces={6} />
       </PageContent>

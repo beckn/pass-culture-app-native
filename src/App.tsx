@@ -97,11 +97,11 @@ const App: FunctionComponent = function () {
                                         <ShareAppWrapper>
                                           <OnboardingWrapper>
                                             <OfflineModeContainer>
-                                              <ScreenErrorProvider>
-                                                <BookingContextProvider >
-                                                  <AppNavigationContainer />
-                                                </BookingContextProvider>
-                                              </ScreenErrorProvider>
+                                              {/* <ScreenErrorProvider> */}
+                                              <BookingContextProvider >
+                                                <AppNavigationContainer />
+                                              </BookingContextProvider>
+                                              {/* </ScreenErrorProvider> */}
                                             </OfflineModeContainer>
                                           </OnboardingWrapper>
                                         </ShareAppWrapper>

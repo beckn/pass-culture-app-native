@@ -15,6 +15,7 @@ import { useSubcategory } from 'libs/subcategories'
 import { Spacer, Typo } from 'ui/theme'
 import { LINE_BREAK } from 'ui/theme/constants'
 import { ViewTripDetailsButton } from 'features/bookings/components/ViewTripDetailsButton'
+import { Disabled } from 'ui/components/IconWithCaption.stories'
 
 export interface BookingDetailsCancelButtonProps {
   booking: Booking
@@ -22,6 +23,7 @@ export interface BookingDetailsCancelButtonProps {
   onTerminate?: () => void
   onViewTripDetails?: () => void
   fullWidth?: boolean
+  disabled?: boolean
 }
 
 export const BookingDetailsCancelButton = (props: BookingDetailsCancelButtonProps) => {
@@ -42,7 +44,7 @@ export const BookingDetailsCancelButton = (props: BookingDetailsCancelButtonProp
         <>
           <ActivationCodeButton onTerminate={props.onTerminate} fullWidth={props.fullWidth} />
           <Spacer.Column numberOfSpaces={4} />
-          <ViewTripDetailsButton onClick={props.onViewTripDetails} fullWidth={props.fullWidth} />
+          <ViewTripDetailsButton onClick={props.onViewTripDetails} disabled={props.disabled} fullWidth={props.fullWidth} />
         </>
       )
     }
@@ -51,7 +53,7 @@ export const BookingDetailsCancelButton = (props: BookingDetailsCancelButtonProp
         <>
           <CancelBookingButton onCancel={props.onCancel} fullWidth={props.fullWidth} />
           <Spacer.Column numberOfSpaces={4} />
-          <ViewTripDetailsButton onClick={props.onViewTripDetails} fullWidth={props.fullWidth} />
+          <ViewTripDetailsButton onClick={props.onViewTripDetails} disabled={props.disabled} fullWidth={props.fullWidth} />
         </>
       )
     }

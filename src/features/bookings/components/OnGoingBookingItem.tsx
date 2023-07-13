@@ -24,7 +24,7 @@ export const OnGoingBookingItem = ({ booking, eligibleBookingsForArchive }: Book
   const daysLeft = daysCountdown(booking.dateCreated)
   const { isEvent } = useSubcategory(booking.stock.offer.subcategoryId)
   const categoryId = useCategoryId(booking.stock.offer.subcategoryId)
-  console.log('Bookingcount', isEvent);
+  // console.log('Bookingcount', isEvent);
   const { stock } = booking
   const bookingProperties = getBookingProperties(booking, isEvent)
   const { dateLabel, withdrawLabel } = getBookingLabels(booking, bookingProperties)

@@ -7,6 +7,7 @@ import {
   BackHandler,
   ActivityIndicator,
 } from 'react-native'
+import { navigateToHome } from 'features/navigation/helpers'
 import MapComponent from '../../components/MapComponent/MapComponent'
 import TravelListModal from '../../components/TravelListModal/TravelListModal'
 import { GeolocPermissionState, useGeolocation } from 'libs/geolocation'
@@ -20,6 +21,8 @@ import { ColorsEnum } from 'ui/theme/colors'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useBookingDetailsContext } from 'features/bookings/pages/BookingDetails/context/BookingDetailsContextProvider'
 import { any } from 'prop-types'
+import { el } from 'date-fns/locale'
+
 
 
 interface Location {
@@ -31,48 +34,36 @@ const { HyperSDKModule } = NativeModules
 
 export const SelectTravelOptions = ({ navigation, route }: any) => {
 
-  console.log('test username', api.getnativev1me())
   const [mobileNumber, setMobileNumber] = useState()
   const mobileCountryCode = '+91'
 
-  const enterPIPMode = () => {
+  // const enterPIPMode = () => {
 
-    PIPModule.isPictureInPictureSupported().then(supported => {
-      if (supported) {
-        PIPModule.enterPictureInPictureMode();
-      } else {
-        console.warn('Picture-in-Picture is not supported on this device.');
-      }
-    });
-  }
+  //   PIPModule.isPictureInPictureSupported().then(supported => {
+  //     if (supported) {
+  //       PIPModule.enterPictureInPictureMode();
+  //     } else {
+  //       console.warn('Picture-in-Picture is not supported on this device.');
+  //     }
+  //   });
+  // }
   const { bookingId } = route.params
-  console.log('bookingId ----> ', bookingId)
-  // console.log("test booking id", route)
 
   const storeReservation = async (currentRideObj) => {
+    console.log("store-resevationcalled", currentRideObj)
     try {
       const getRide = await AsyncStorage.getItem('currentRide');
-      console.log('getrides ----------------------/ ', getRide)
+
       let currentRide = currentRideObj;
 
-      // if (reservationsJSON !== null) {
-      //   currentRide = JSON.parse(reservationsJSON);
-      // }
-
-      // currentRide = currentRideObj;
-
-      // const updatedReservationJSON = JSON.stringify(currentRide);
-      console.log('storeReservation--------------------->', currentRide)
-
       await AsyncStorage.setItem("currentRide", JSON.stringify(currentRide));
-
-      console.log('Reservation stored successfully.', currentRide);
     } catch (error) {
       console.log('Error storing reservation:', error);
     }
   };
 
-  const updateReservation = async (reservationId, tripId, tripAmount) => {
+  const updateReservation = async (tripId, tripAmount) => {
+
     try {
       let currentRideObj = await AsyncStorage.getItem('currentRide');
       let reservationsJSON = await AsyncStorage.getItem('reservations');
@@ -98,7 +89,6 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
           (reservation) => reservation.commonKey === commonKey
         );
 
-        console.log('Retrieved reservations:', filteredReservations);
         return filteredReservations;
       } else {
         console.log('No reservations found.');
@@ -125,7 +115,6 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
   const [currentAddress, setCurrentAddress] = useState();
   const [destAddress, setdestAddress] = useState();
   const { address: bookingAddress } = useBookingDetailsContext()
-  console.log('bookingAddress---------------->', bookingAddress)
 
   useEffect(() => {
     const fetchCurrentLocation = async () => {
@@ -153,7 +142,7 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
       }
     }
     fetchCurrentLocation()
-  }, [permissionState, showGeolocPermissionModal])
+  }, [permissionState, showGeolocPermissionModal, currentLocation])
 
   function getAddressFromCoordinates(latitude, longitude) {
     const apiKey = 'AIzaSyDj_jBuujsEk8mkIva0xG6_H73oJEytXEA';
@@ -165,7 +154,6 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
         if (data.results && data.results.length > 0) {
           const address = data.results[0].formatted_address;
           setCurrentAddress(address);
-          console.log('Current Address:', address);
         } else {
           console.log('No address found for the given coordinates.');
         }
@@ -186,7 +174,6 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
         if (data.results && data.results.length > 0) {
           const address = data.results[0].formatted_address;
           setdestAddress(address);
-          console.log('Current Address:', address);
         } else {
           console.log('No address found for the given coordinates.');
         }
@@ -207,7 +194,6 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
           const latitude = data.results[0].geometry.location.lat;
           const longitude = data.results[0].geometry.location.lng;
           setDestLocation(data.results[0].geometry.location)
-          console.log('destCoordinates:', data.results[0].geometry.location);
         } else {
           console.log('No coordinates found for the given address.');
         }
@@ -233,7 +219,7 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
 
 
 
-  const processPayload2 = {
+  const processPayload1 = {
     requestId: '6bdee986-f106-4884-ba9a-99c478d78c22',
     service: 'in.yatri.consumer',
     payload: {
@@ -253,26 +239,54 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
         name: currentAddress,
       },
       destination: {
-        lat: destLocation?.lat,
-        lon: destLocation?.lng,
-        name: bookingAddress
+        lat: 48.24232, //destLocation?.lat,
+        lon: 2.5421, //destLocation?.lng,
+        name: '' //bookingAddress
       },
     }
   }
 
 
   const [showLoader, setShowLoader] = useState(false)
-
+  const [disabled, setDisabled] = useState(false);
   const handleClick = () => {
+
+    console.log('handleClickfromtravleoptions')
+    setDisabled(true);
     setShowLoader(true);
+    console.log('isHyperSdkReactInitialised:', HyperSdkReact.isNull());
     if (HyperSdkReact.isNull()) {
       HyperSdkReact.createHyperServices();
+      console.log('isHyperSdkReactin iF:', HyperSdkReact.isNull());
+      HyperSdkReact.isInitialised().then((init) => {
+        console.log('isInitialised:', init);
+        if (init) {
+          HyperSdkReact.initiate(initiatePayload);
+        } else {
+          HyperSdkReact.terminate();
+          HyperSdkReact.createHyperServices();
+          HyperSdkReact.initiate(initiatePayload);
+
+        }
+      });
+    } else {
+      HyperSdkReact.isInitialised().then((init) => {
+        console.log('isInitialised:', init);
+        if (init) {
+
+          HyperSdkReact.terminate();
+          HyperSdkReact.createHyperServices();
+          HyperSdkReact.initiate(initiatePayload);
+        } else {
+          HyperSdkReact.terminate();
+          HyperSdkReact.createHyperServices();
+          HyperSdkReact.initiate(initiatePayload);
+          console.log('initiate: called');
+        }
+
+      });
     }
 
-    HyperSdkReact.initiate(initiatePayload);
-    HyperSdkReact.isInitialised().then((init) => {
-      console.log('isInitialised:', init);
-    });
 
   }
 
@@ -283,15 +297,13 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
       const { firstName } = (await api.getnativev1me()) || 'user'
       const { phoneNumber } = (await api.getnativev1me()) || '+918297921333'
       let mobile = phoneNumber?.slice(3, phoneNumber.length)
-      console.log("test username1", mobile, firstName)
       setMobileNumber(mobile);
       getCoordinatesFromAddress(bookingAddress);
       try {
         const result = await HyperSDKModule.dynamicSign(firstName, mobile, mobileCountryCode)
         setSignatureResponse(result)
-        console.log('signauth check', result)
       } catch (error) {
-        console.error(error);
+        // console.error(error);
       }
     };
 
@@ -300,25 +312,25 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
 
 
   useEffect(() => {
-    const processPayload2Copy = { ...processPayload2 } // Create a copy of the processPayload2 object
-    9090902024
+    const process = { ...processPayload1 } // Create a copy of the processPayload2 object
+
     if (signatureResponse) {
-      processPayload2Copy.payload.signatureAuthData.signature = signatureResponse.signature;
-      processPayload2Copy.payload.signatureAuthData.authData = signatureResponse.signatureAuthData;
+      process.payload.signatureAuthData.signature = signatureResponse.signature;
+      process.payload.signatureAuthData.authData = signatureResponse.signatureAuthData;
 
     }
 
     if (destLocation) {
-      processPayload2Copy.payload.destination.lat = destLocation.lat;
-      processPayload2Copy.payload.destination.lon = destLocation.lng;
-
+      process.payload.destination.lat = destLocation.lat;
+      process.payload.destination.lon = destLocation.lng;
+      process.payload.destination.name = bookingAddress || '';
     }
-    console.log('Updated processPayload2:', processPayload2Copy);
+    console.log('payloadSDK:', process);
     const eventEmitter = new NativeEventEmitter(NativeModules.HyperSdkReact)
     const eventListener = eventEmitter.addListener('HyperEvent', (resp) => {
       const data = JSON.parse(resp);
       const event = data.event || '';
-      console.log('event_call: is called ', event);
+      console.log("event : ", event);
       switch (event) {
         case 'show_loader':
           // show some loader here
@@ -326,79 +338,95 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
 
         case 'hide_loader':
           // hide the loader
-          setTimeout(() => {
-            setShowLoader(false)
-            setModalVisible(false);
-          }, 3000)
+          // setTimeout(() => {
+          //   setShowLoader(false)
+          //   setModalVisible(false);
+          // }, 3000)
+
+          // setModalVisible(false);
           break;
 
         case 'initiate_result':
           const payload = data.payload || {};
           const res = payload ? payload.status : payload;
-          console.log('initiate_result: ', processPayload2);
+          console.log('initiate_result: ', payload);
           if (res === 'SUCCESS') {
-            console.log('checkbookinfID', bookingId)
+
             const reservation1 = {
               reservationid: bookingId,
               tripid: '',
               tripamount: '',
-              source: processPayload2.payload.source,
-              destination: processPayload2.payload.destination,
+              source: process.payload.source,
+              destination: process.payload.destination,
               tripdate: new Date(),
               commonKey: mobileNumber,
             }
             storeReservation(reservation1)
             // Initiation is successful, call process method
-            if (processPayload2.payload.signatureAuthData != undefined) {
-              HyperSdkReact.process(JSON.stringify(processPayload2));
+            if (process.payload.signatureAuthData != undefined) {
+              HyperSdkReact.process(JSON.stringify(process));
+              console.log('payloadSDKinside:', process);
             } else {
               alert('Invalid signature');
             }
-            // HyperSdkReact.process(JSON.stringify(processPayload2));
-            console.log('process_call: is called ', payload);
+            setTimeout(() => {
+              setShowLoader(false)
+              setModalVisible(false);
+            }, 3000)
           } else {
             // Handle initiation failure
+            setShowLoader(false)
             setModalVisible(true)
+            AsyncStorage.removeItem('currentRide');
             console.log('Initiation failed.');
           }
           break
         case 'process_result':
           const process_result = data.payload || {}
+          console.log('process_result: ', process_result);
           switch (process_result) {
             case 'home_screen':
               HyperSdkReact.terminate()
+              navigateToHome()
 
           }
 
-        case 'trip_status':
+          //   break
+
+          // case 'trip_status':
           const processPayload = data.payload || {}
-          console.log('process_result: ', processPayload)
+
           // Handle process result
           if (processPayload?.action === 'terminate' && processPayload?.screen === 'home_screen') {
             HyperSdkReact.terminate()
-            console.log('process_call: is called ', processPayload)
+            eventListener.remove()
           } else if (processPayload?.ride_status === 'TRIP_FINISHED') {
             //function call for wallet transaction
 
-            updateReservation(bookingId, processPayload?.trip_id, processPayload?.trip_amount);
-            console.log('process_call: wallet transaction ', processPayload)
+            updateReservation(processPayload?.trip_id, processPayload?.trip_amount);
+
             // HyperSdkReact.terminate();
           } else if (processPayload?.action === 'feedback_submitted' || processPayload?.action === 'home_screen') {
 
-            console.log('process_call: wallet transaction ', processPayload);
             HyperSdkReact.terminate();
+            eventListener.remove()
             setModalVisible(true)
+            navigateToHome()
           }
 
           if (processPayload?.screen === 'home_screen') {
             HyperSdkReact.terminate()
+            eventListener.remove()
             setModalVisible(true)
+            navigateToHome()
           } else if (processPayload?.screen === 'trip_started_screen') {
             // BackHandler.exitApp();
-            enterPIPMode();
+            // enterPIPMode();
           }
-          console.log('process_call: process ', processPayload)
 
+          // 25 46 55 bookingdetailscancelbutton  //  viewtripdetailbutton - 14 8  18-19
+
+          // BookingDetail.tsx  183  339
           break
 
         default:
@@ -409,6 +437,13 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
     BackHandler.addEventListener('hardwareBackPress', () => {
       return !HyperSdkReact.isNull() && HyperSdkReact.onBackPressed()
     })
+
+    // const backhandler = BackHandler.addEventListener('hardwareBackPress', () => {
+    //   return true;
+    // });
+    // return () => {
+    //   backhandler.remove();
+    // };
 
     return () => {
       eventListener.remove()
@@ -427,6 +462,7 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
       {currentLocation && <MapComponent mapUrl={mapUrl} />}
       {modalVisible && (
         <TravelListModal
+          disabled={disabled}
           visible={modalVisible}
           showLoader={showLoader}
           onProceed={() => handleClick()}
