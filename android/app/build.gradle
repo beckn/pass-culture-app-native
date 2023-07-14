@@ -7,12 +7,12 @@ apply plugin: "com.google.firebase.firebase-perf"
 project.ext.envConfigFiles = [
         apptestingdebug: ".env.testing",
         apptestingrelease: ".env.testing",
-        developmentdebug: ".env.integration",
+        developmentdebug: ".env.development",
         stagingdebug: ".env.staging",
         stagingrelease: ".env.staging",
         productiondebug: ".env.production",
         productionrelease: ".env.production",
-        "": ".env.staging",                         // Default (must be the last in the list so as not to override others)
+        "": ".env.testing",                         // Default (must be the last in the list so as not to override others)
 ]
 apply from: project(':bam.tech_react-native-config').projectDir.getPath() + "/dotenv.gradle"
 
