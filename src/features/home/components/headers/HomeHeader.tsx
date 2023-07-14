@@ -1,8 +1,7 @@
 import { useNavigation } from '@react-navigation/native'
-import React, { FunctionComponent, useMemo } from 'react'
-import { Platform } from 'react-native'
+import React, { FunctionComponent, useMemo, useEffect, useState } from 'react'
+import { Platform, Button, NativeModules, NativeEventEmitter, BackHandler } from 'react-native'
 import styled from 'styled-components/native'
-
 import { BannerName } from 'api/gen'
 import { useAuthContext } from 'features/auth/context/AuthContext'
 import { useHomeBanner } from 'features/home/api/useHomeBanner'
@@ -22,25 +21,104 @@ import { BicolorUnlock } from 'ui/svg/icons/BicolorUnlock'
 import { BirthdayCake } from 'ui/svg/icons/BirthdayCake'
 import { getSpacing, Spacer, Typo } from 'ui/theme'
 import { useCustomSafeInsets } from 'ui/theme/useCustomSafeInsets'
+import { api } from 'api/api'
+import HyperSdkReact from 'hyper-sdk-react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+
+// const { PIPModule } = NativeModules;
+const { HyperSDKModule } = NativeModules
+
 
 export const HomeHeader: FunctionComponent = function () {
+
+  // const enterPIPMode = () => {
+
+  //   PIPModule.isPictureInPictureSupported().then(supported => {
+  //     if (supported) {
+  //       PIPModule.enterPictureInPictureMode();
+  //     } else {
+  //       console.warn('Picture-in-Picture is not supported on this device.');
+  //     }
+  //   });
+  // }
+
+
+  const preFetchPayload = {
+    "service": "in.yatri.consumer",
+    "payload": {
+      "clientId": "passcultureconsumer"
+    }
+  }
+  HyperSdkReact.preFetch(JSON.stringify(preFetchPayload));
+
+  console.log(JSON.stringify(preFetchPayload), 'prefetch initialization');
   const navigation = useNavigation<UseNavigationType>()
   const availableCredit = useAvailableCredit()
   const { top } = useCustomSafeInsets()
   const { isLoggedIn, user } = useAuthContext()
 
-  const { permissionState } = useGeolocation()
+  const { permissionState, showGeolocPermissionModal } = useGeolocation()
   const isGeolocated = permissionState === GeolocPermissionState.GRANTED
+  useEffect(() => {
+    const fetchCurrentLocation = async () => {
+      try {
+        if (permissionState === GeolocPermissionState.GRANTED) {
+
+        } else {
+          showGeolocPermissionModal()
+        }
+      } catch (error) {
+        console.error('Error getting current location:', error)
+      }
+    }
+    fetchCurrentLocation()
+  }, [permissionState, showGeolocPermissionModal])
+
+
+
   const { data } = useHomeBanner(isGeolocated)
   const homeBanner = data?.banner
+
+  const getReservationsByCommonKey = async (commonKey) => {
+    try {
+      const reservationsJSON = await AsyncStorage.getItem('reservations');
+
+      if (reservationsJSON !== null) {
+        const reservations = JSON.parse(reservationsJSON);
+        const filteredReservations = reservations.filter(
+          (reservation) => reservation.commonKey === commonKey
+        );
+
+        console.log('Retrieved reservations:', filteredReservations);
+        return filteredReservations;
+      } else {
+        console.log('No reservations found.');
+        return [];
+      }
+    } catch (error) {
+      console.log('Error retrieving reservations:', error);
+      return [];
+    }
+  };
+
+  // const deleteAllReservations = async () => {
+  //   try {
+  //     await AsyncStorage.removeItem('reservations');
+  //     await AsyncStorage.removeItem('currentRide');
+  //     console.log('All reservations deleted successfully.');
+  //   } catch (error) {
+  //     console.log('Error deleting reservations:', error);
+  //   }
+  // };
+
+  // deleteAllReservations();
+
+
 
   const welcomeTitle =
     user?.firstName && isLoggedIn ? `Bonjour ${user.firstName}` : 'Bienvenue\u00a0!'
 
-  // we distinguish three different cases:
-  // - not connected OR eligible-to-credit users
-  // - beneficiary users
-  // - ex-beneficiary users
   const getSubtitle = () => {
     const shouldSeeDefaultSubtitle =
       !isLoggedIn || !user || !isUserBeneficiary(user) || user.isEligibleForBeneficiaryUpgrade
@@ -74,12 +152,12 @@ export const HomeHeader: FunctionComponent = function () {
         </BannerContainer>
       )
 
-    if (homeBanner?.name === BannerName.geolocation_banner)
-      return (
-        <BannerContainer>
-          <GeolocationBanner title={homeBanner.title} subtitle={homeBanner.text} />
-        </BannerContainer>
-      )
+    // if (homeBanner?.name === BannerName.geolocation_banner)
+    //   return (
+    //     <BannerContainer>
+    //       <GeolocationBanner title={homeBanner.title} subtitle={homeBanner.text} />
+    //     </BannerContainer>
+    //   )
 
     if (homeBanner?.name === BannerName.retry_identity_check_banner)
       return (
@@ -112,6 +190,12 @@ export const HomeHeader: FunctionComponent = function () {
         </CheatCodeButtonContainer>
       )}
       <PageHeader title={welcomeTitle} numberOfLines={2} />
+      <PageContent>
+        {/* <Typo.Body>{getSubtitle()}</Typo.Body> */}
+        {/* <Button title="Enter PIP Mode" onPress={enterPIPMode} /> */}
+        {/* <Button onPress={handleClick} title="Click here" /> */}
+        <Spacer.Column numberOfSpaces={6} />
+      </PageContent>
       <PageContent>
         <Typo.Body>{getSubtitle()}</Typo.Body>
         <Spacer.Column numberOfSpaces={6} />

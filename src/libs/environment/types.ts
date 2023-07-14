@@ -1,4 +1,5 @@
 export interface Environment {
+  PCM_API_BASE_URL: string | undefined
   ACCESSIBILITY_LINK: string
   ALGOLIA_APPLICATION_ID: string
   ALGOLIA_OFFERS_INDEX_NAME: string
@@ -45,6 +46,7 @@ export interface Environment {
   FIREBASE_STORAGEBUCKET: string
   GCP_IMAGE_COULD_STORAGE_NAME: string
   GOOGLE_PLAY_STORE_URL: string
+  GOOGLE_MAP_API_KEY: string
   IOS_APP_ID: string
   IOS_APP_STORE_ID: string
   PASSCULTURE_DOWNLOAD_APP_URL: string
