@@ -240,7 +240,7 @@ export function OnGoingBookingsList() {
   const getReservationsByCommonKey = async (commonKey) => {
     try {
       const currentRide = await AsyncStorage.getItem('currentRide')
-      const currentRideObj = currentRide ?  JSON.parse(currentRide) : {};
+      const currentRideObj = currentRide ? JSON.parse(currentRide) : {};
       setDestLocation(currentRide)
       console.log('currentRide', currentRide);
       return Object.keys(currentRideObj).length && commonKey === currentRideObj.commonKey ? [currentRideObj] : []
@@ -288,14 +288,14 @@ export function OnGoingBookingsList() {
     process3.payload.signatureAuthData.authData = result.signatureAuthData
     process3.payload.source.lat = currentLocation?.latitude
     process3.payload.source.lon = currentLocation?.longitude
-    process3.payload.source.name= currentAddress,
-    
-    // if (destLocation) {
-    //   process3.payload.destination.lat = destLocation.lat;
-    //   process3.payload.destination.lon = des tLocation.lng;
-    //   process3.payload.destination.name = destLocation.name || '';
-    // }
-    console.log('Updated processPayload2:', process3)
+    process3.payload.source.name = currentAddress,
+
+      // if (destLocation) {
+      //   process3.payload.destination.lat = destLocation.lat;
+      //   process3.payload.destination.lon = des tLocation.lng;
+      //   process3.payload.destination.name = destLocation.name || '';
+      // }
+      console.log('Updated processPayload3:', process3)
 
     const eventEmitter1 = new NativeEventEmitter(NativeModules.HyperSdkReact)
     let eventListener1;
