@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   FlatList,
   ListRenderItem,
@@ -136,6 +136,7 @@ export function OnGoingBookingsList() {
           const address = data.results[0].formatted_address;
           setCurrentAddress(address);
           console.log('Current Address:', address);
+          return address;
         } else {
           console.log('No address found for the given coordinates.');
         }
@@ -156,7 +157,9 @@ export function OnGoingBookingsList() {
         if (data.results && data.results.length > 0) {
           const address = data.results[0].formatted_address;
           setdestAddress(address);
-          console.log('Current Address:', address);
+          console.log('Dest Address:', address);
+          // return address;
+          // 
         } else {
           console.log('No address found for the given coordinates.');
         }
@@ -199,7 +202,7 @@ export function OnGoingBookingsList() {
       source: {
         lat: currentLocation?.latitude,
         lon: currentLocation?.longitude,
-        name: currentAddress,
+        name: '',
       },
       destination: {
         lat: 48.895266,
@@ -235,13 +238,13 @@ export function OnGoingBookingsList() {
     fetchSignatureResponse()
 
   }, [isFetching])
-  const [destLocation, setDestLocation] = useState()
+  const destLocation = useRef();
 
   const getReservationsByCommonKey = async (commonKey) => {
     try {
       const currentRide = await AsyncStorage.getItem('currentRide')
       const currentRideObj = currentRide ? JSON.parse(currentRide) : {};
-      setDestLocation(currentRide)
+      destLocation.current = currentRideObj
       console.log('currentRide', currentRide);
       return Object.keys(currentRideObj).length && commonKey === currentRideObj.commonKey ? [currentRideObj] : []
     } catch (error) {
@@ -272,8 +275,26 @@ export function OnGoingBookingsList() {
     } catch (error) {
       console.error(error)
     }
+    let currentAddressName = '1er, Tour Eiffel, Av. Gustave Eiffel, 75007 Paris, France';
+    const apiKey = 'AIzaSyCFIR5ETG_Zfnx5dBpLke4ZD6WLvrZvEmk';
+    const geocodeApiUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${position?.latitude},${position?.longitude}&key=${apiKey}`;
 
-
+    fetch(geocodeApiUrl)
+      .then(response => response.json())
+      .then(data => {
+        if (data.results && data.results.length > 0) {
+          const address = data.results[0].formatted_address;
+          currentAddressName = address;
+          // setCurrentAddress(address);
+          console.log('Current Address:', address);
+          return address;
+        } else {
+          console.log('No address found for the given coordinates.');
+        }
+      })
+      .catch(error => {
+        console.log('Error getting address:', error);
+      });
 
     console.log('isHyperSdkReactInitialised:', HyperSdkReact.isNull());
     if (HyperSdkReact.isNull()) {
@@ -281,21 +302,22 @@ export function OnGoingBookingsList() {
     }
     HyperSdkReact.initiate(initiatePayload);
     console.log('handleClickfromongoingbooking', signatureResponse)
-    const process3 = { ...processPayload3 } // Create a copy of the processPayload2 object
+    let process3 = { ...processPayload3 } // Create a copy of the processPayload2 object
     // setActiveScreen('OnGoingBookingsList');
 
     process3.payload.signatureAuthData.signature = result.signature
     process3.payload.signatureAuthData.authData = result.signatureAuthData
-    process3.payload.source.lat = currentLocation?.latitude
-    process3.payload.source.lon = currentLocation?.longitude
-    process3.payload.source.name = currentAddress,
+    process3.payload.source.lat = position?.latitude
+    process3.payload.source.lon = position?.longitude
 
-      // if (destLocation) {
-      //   process3.payload.destination.lat = destLocation.lat;
-      //   process3.payload.destination.lon = des tLocation.lng;
-      //   process3.payload.destination.name = destLocation.name || '';
-      // }
-      console.log('Updated processPayload3:', process3)
+    console.log('currentAddressName', currentAddressName);
+    process3.payload.source.name = currentAddressName,
+      console.log('destLocation', destLocation)
+    process3.payload.destination.lat = destLocation.current.destination.lat;
+    process3.payload.destination.lon = destLocation.current.destination.lon;
+    process3.payload.destination.name = destLocation.current.destination.name
+
+    console.log('Updated processPayload3:', process3)
 
     const eventEmitter1 = new NativeEventEmitter(NativeModules.HyperSdkReact)
     let eventListener1;

@@ -1,0 +1,35 @@
+{
+    "action": "terminate",
+    "exit_app": false,
+    "ride_status": null,
+    "screen": "home_screen",
+    "trip_amount": null,
+    "trip_id": null
+}
+
+{
+    "action": "trip_status",
+    "exit_app": false,
+    "ride_status": "DRIVER_ASSIGNMENT",
+    "screen": "trip_accepted_screen",
+    "trip_amount": null,
+    "trip_id": "c213c82a-6650-48d0-9990-aa8cd13f792f"
+}
+
+{
+    "action": "trip_status",
+    "exit_app": false,
+    "ride_status": "CANCELLED_PRODUCT",
+    "screen": "trip_accepted_screen",
+    "trip_amount": null,
+    "trip_id": "c213c82a-6650-48d0-9990-aa8cd13f792f"
+}
+
+{
+    "action": "trip_status",
+    "exit_app": false,
+    "ride_status": "CANCELLED_PRODUCT",
+    "screen": "home_screen",
+    "trip_amount": null,
+    "trip_id": "04c79de7-27ac-4e61-aaeb-991a1727efcd"
+}

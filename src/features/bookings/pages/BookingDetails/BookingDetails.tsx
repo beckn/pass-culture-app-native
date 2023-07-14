@@ -86,6 +86,8 @@ export function BookingDetails() {
     hideModal: hideArchiveModal,
   } = useModal(false)
 
+
+  const [showTripLoader, setShowTripLoader] = useState(false);
   const mapping = useSubcategoriesMapping()
   const { dispatch: bookingDispatch } = useBookingDetailsContext()
 
@@ -96,7 +98,7 @@ export function BookingDetails() {
   const { data: bookings } = useBookings()
   const { ended_bookings: endedBookings = emptyBookings } = bookings ?? {}
   const { showInfoSnackBar, showErrorSnackBar } = useSnackBarContext()
-  // console.log('venue-details', venue)
+  console.log('venue-details', venue)
   // console.log('offerId', offerId)
   const { navigate } = useNavigation<UseNavigationType>()
 
@@ -328,7 +330,7 @@ export function BookingDetails() {
       destination: {
         lat: venue?.coordinates?.latitude || 48.212,
         lon: venue?.coordinates?.longitude || 2.212,
-        name: venue?.address || ' ',
+        name: venue?.address || '',
       },
     }
   }
@@ -350,8 +352,8 @@ export function BookingDetails() {
   const [disabled, setDisabled] = useState(false);
 
   const viewTripDetails = async () => {
-    console.log('handleClickfromBookingDetails-----------------------//////////////////////////////////----------------------------------------------------------------')
-    // setDisabled(true);
+
+    setShowTripLoader(true)
     let result;
     const { firstName } = (await api.getnativev1me()) || 'user'
     const { phoneNumber } = (await api.getnativev1me()) || '+918297921333'
@@ -445,7 +447,7 @@ export function BookingDetails() {
               source: process2.payload.source,
               destination: process2.payload.destination,
               tripdate: new Date(),
-              commonKey: mobileNumber,
+              commonKey: mobile,
             }
             storeReservation(reservation1)
 
@@ -455,6 +457,9 @@ export function BookingDetails() {
             } else {
               alert('Invalid signature');
             }
+            setTimeout(() => {
+              setShowTripLoader(false)
+            }, 3000)
             // HyperSdkReact.process(JSON.stringify(processPayload2));
             console.log('process_call: is called ', payload);
           } else {
@@ -503,7 +508,7 @@ export function BookingDetails() {
           }
 
 
-          if (processPayload?.screen === 'home_screen') {
+          if (processPayload?.ride_status === null && processPayload?.screen === 'home_screen') {
             HyperSdkReact.terminate();
             eventListener2.remove()
             navigateToHome()
@@ -625,7 +630,7 @@ export function BookingDetails() {
             onTerminate={showArchiveModal}
             onViewTripDetails={viewTripDetails}
             fullWidth
-            disabled={disabled}
+            isLoading={showTripLoader}
           />
         </ViewWithPadding>
         <Spacer.Column numberOfSpaces={5} />

@@ -23,7 +23,7 @@ export interface BookingDetailsCancelButtonProps {
   onTerminate?: () => void
   onViewTripDetails?: () => void
   fullWidth?: boolean
-  disabled?: boolean
+  isLoading?: boolean
 }
 
 export const BookingDetailsCancelButton = (props: BookingDetailsCancelButtonProps) => {
@@ -44,7 +44,7 @@ export const BookingDetailsCancelButton = (props: BookingDetailsCancelButtonProp
         <>
           <ActivationCodeButton onTerminate={props.onTerminate} fullWidth={props.fullWidth} />
           <Spacer.Column numberOfSpaces={4} />
-          <ViewTripDetailsButton onClick={props.onViewTripDetails} disabled={props.disabled} fullWidth={props.fullWidth} />
+          <ViewTripDetailsButton onClick={props.onViewTripDetails} fullWidth={props.fullWidth} isLoading={props?.isLoading} />
         </>
       )
     }
@@ -53,7 +53,7 @@ export const BookingDetailsCancelButton = (props: BookingDetailsCancelButtonProp
         <>
           <CancelBookingButton onCancel={props.onCancel} fullWidth={props.fullWidth} />
           <Spacer.Column numberOfSpaces={4} />
-          <ViewTripDetailsButton onClick={props.onViewTripDetails} disabled={props.disabled} fullWidth={props.fullWidth} />
+          <ViewTripDetailsButton onClick={props.onViewTripDetails} fullWidth={props.fullWidth} isLoading={props?.isLoading} />
         </>
       )
     }
