@@ -14,12 +14,16 @@ import { formatToCompleteFrenchDate } from 'libs/parsers'
 import { useSubcategory } from 'libs/subcategories'
 import { Spacer, Typo } from 'ui/theme'
 import { LINE_BREAK } from 'ui/theme/constants'
+import { ViewTripDetailsButton } from 'features/bookings/components/ViewTripDetailsButton'
+import { Disabled } from 'ui/components/IconWithCaption.stories'
 
 export interface BookingDetailsCancelButtonProps {
   booking: Booking
   onCancel?: () => void
   onTerminate?: () => void
+  onViewTripDetails?: () => void
   fullWidth?: boolean
+  disabled?: boolean
 }
 
 export const BookingDetailsCancelButton = (props: BookingDetailsCancelButtonProps) => {
@@ -36,10 +40,22 @@ export const BookingDetailsCancelButton = (props: BookingDetailsCancelButtonProp
 
   const renderButton = () => {
     if (properties.hasActivationCode) {
-      return <ActivationCodeButton onTerminate={props.onTerminate} fullWidth={props.fullWidth} />
+      return (
+        <>
+          <ActivationCodeButton onTerminate={props.onTerminate} fullWidth={props.fullWidth} />
+          <Spacer.Column numberOfSpaces={4} />
+          <ViewTripDetailsButton onClick={props.onViewTripDetails} disabled={props.disabled} fullWidth={props.fullWidth} />
+        </>
+      )
     }
     if (!isFreeOfferToArchive) {
-      return <CancelBookingButton onCancel={props.onCancel} fullWidth={props.fullWidth} />
+      return (
+        <>
+          <CancelBookingButton onCancel={props.onCancel} fullWidth={props.fullWidth} />
+          <Spacer.Column numberOfSpaces={4} />
+          <ViewTripDetailsButton onClick={props.onViewTripDetails} disabled={props.disabled} fullWidth={props.fullWidth} />
+        </>
+      )
     }
     return null
   }
