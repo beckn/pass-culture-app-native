@@ -57,6 +57,7 @@ const emptyBookings: Booking[] = []
 
 export function BookingDetails() {
 
+  const { reset, navigate } = useNavigation<UseNavigationType>()
   const [showRideCanceledModal, setShowRideCanceledModal] = useState<boolean>(false)
   const closeRidecancelModal = () => {
     setShowRideCanceledModal(false)
@@ -100,7 +101,7 @@ export function BookingDetails() {
   const { showInfoSnackBar, showErrorSnackBar } = useSnackBarContext()
   console.log('venue-details', venue)
   // console.log('offerId', offerId)
-  const { navigate } = useNavigation<UseNavigationType>()
+  // const { navigate } = useNavigation<UseNavigationType>()
 
   // Allows to display a message in case of refresh specifying the cancellation
   // of the reservation being consulted if it is made via Flask Admin
@@ -265,18 +266,6 @@ export function BookingDetails() {
         console.log('Error getting address:', error);
       });
   }
-  const storeReservation = async (currentRideObj) => {
-    console.log("store-resevationcalled", currentRideObj)
-    try {
-      const getRide = await AsyncStorage.getItem('currentRide');
-
-      let currentRide = currentRideObj;
-
-      await AsyncStorage.setItem("currentRide", JSON.stringify(currentRide));
-    } catch (error) {
-      console.log('Error storing reservation:', error);
-    }
-  };
 
   const updateReservation = async (tripId, tripAmount) => {
     try {
@@ -345,7 +334,7 @@ export function BookingDetails() {
   const [mobileNumber, setMobileNumber] = useState();
   const mobileCountryCode = "+91";
 
-  const { bookingId } = booking.id || '1234567'
+  const bookingId = booking.id || '1234567'
   const [signatureResponse, setSignatureResponse] = useState(null); // State to store the signature response
 
   const [disabled, setDisabled] = useState(true);
@@ -438,17 +427,6 @@ export function BookingDetails() {
           const res = payload ? payload.status : payload;
           console.log('initiate_result: ', processPayload2);
           if (res === 'SUCCESS') {
-            const reservation1 = {
-              reservationid: bookingId,
-              tripid: '',
-              tripamount: '',
-              source: process2.payload.source,
-              destination: process2.payload.destination,
-              tripdate: new Date(),
-              commonKey: mobile,
-            }
-            // storeReservation(reservation1)
-
 
             if (process2.payload.signatureAuthData != undefined) {
               HyperSdkReact.process(JSON.stringify(process2));
@@ -500,7 +478,19 @@ export function BookingDetails() {
             console.log('process_call: wallet transaction ', processPayload);
             HyperSdkReact.terminate();
             eventListener2.remove()
-            navigateToHome()
+            // navigateToHome()
+            reset({
+              index: 1,
+              routes: [
+                {
+                  name: 'TabNavigator',
+                  state: {
+                    routes: [{ name: 'Bookings' }],
+                    index: 0,
+                  },
+                },
+              ],
+            })
             console.log('sdkbackpresfeedback');
             // setModalVisible(true)
           }
@@ -509,7 +499,19 @@ export function BookingDetails() {
           if (processPayload?.ride_status === null && processPayload?.screen === 'home_screen') {
             HyperSdkReact.terminate();
             eventListener2.remove()
-            navigateToHome()
+            // navigateToHome()
+            reset({
+              index: 1,
+              routes: [
+                {
+                  name: 'TabNavigator',
+                  state: {
+                    routes: [{ name: 'Bookings' }],
+                    index: 0,
+                  },
+                },
+              ],
+            })
 
 
             // setModalVisible(true)
@@ -559,25 +561,25 @@ export function BookingDetails() {
         console.error(error);
       }
       const currentRideobj = await AsyncStorage.getItem('currentRide')
-      
-      if(!!currentRideobj){
+
+      if (!!currentRideobj) {
         const currentRide = JSON.parse(currentRideobj);
-        console.log('bookingId : reservationId ', currentRide?.reservationid , booking?.id)
-         setDisabled(currentRide?.reservationid === booking?.id)
+        console.log('bookingId : reservationId ', currentRide?.reservationid, booking?.id)
+        setDisabled(currentRide?.reservationid === booking?.id)
       }
     }
 
     fetchSignatureResponse();
   }, []);
 
-  const onClickViewTripDetails = async () =>{
+  const onClickViewTripDetails = async () => {
     const currentRideobj = await AsyncStorage.getItem('currentRide')
-    if(!!currentRideobj){
+    if (!!currentRideobj) {
       const currentRide = JSON.parse(currentRideobj);
-      console.log('bookingId : reservationId ', currentRide?.reservationid , booking.id)
-      currentRide?.reservationid === booking?.id && viewTripDetails() 
-    }else {
-      navigate('SelectTravelOptions', {bookingId : booking?.id})
+      console.log('bookingId : reservationId ', currentRide?.reservationid, booking.id)
+      currentRide?.reservationid === booking?.id && viewTripDetails()
+    } else {
+      navigate('SelectTravelOptions', { bookingId: booking?.id })
     }
   }
 
