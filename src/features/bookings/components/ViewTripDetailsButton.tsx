@@ -11,16 +11,16 @@ export interface ViewTripDetailsButtonProps {
 
 export const ViewTripDetailsButton = ({
   onClick,
-  disabled,
   fullWidth = false,
   isLoading = false,
+  disabled = false,
 }: ViewTripDetailsButtonProps) => {
   return (
     <ButtonSecondary
       wording="Afficher les détails du voyage"
       onPress={onClick}
       fullWidth={fullWidth}
-      disabled={isLoading}
+      disabled={isLoading || disabled}
       isLoading={isLoading}
     />
   )

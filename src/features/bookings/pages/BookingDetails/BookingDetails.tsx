@@ -346,13 +346,11 @@ export function BookingDetails() {
   const mobileCountryCode = "+91";
 
   const { bookingId } = booking.id || '1234567'
-  console.log('bookingId', bookingId);
   const [signatureResponse, setSignatureResponse] = useState(null); // State to store the signature response
 
-  const [disabled, setDisabled] = useState(false);
+  const [disabled, setDisabled] = useState(true);
 
   const viewTripDetails = async () => {
-
     setShowTripLoader(true)
     let result;
     const { firstName } = (await api.getnativev1me()) || 'user'
@@ -449,7 +447,7 @@ export function BookingDetails() {
               tripdate: new Date(),
               commonKey: mobile,
             }
-            storeReservation(reservation1)
+            // storeReservation(reservation1)
 
 
             if (process2.payload.signatureAuthData != undefined) {
@@ -560,11 +558,28 @@ export function BookingDetails() {
       } catch (error) {
         console.error(error);
       }
-    };
+      const currentRideobj = await AsyncStorage.getItem('currentRide')
+      
+      if(!!currentRideobj){
+        const currentRide = JSON.parse(currentRideobj);
+        console.log('bookingId : reservationId ', currentRide?.reservationid , booking?.id)
+         setDisabled(currentRide?.reservationid === booking?.id)
+      }
+    }
 
     fetchSignatureResponse();
   }, []);
 
+  const onClickViewTripDetails = async () =>{
+    const currentRideobj = await AsyncStorage.getItem('currentRide')
+    if(!!currentRideobj){
+      const currentRide = JSON.parse(currentRideobj);
+      console.log('bookingId : reservationId ', currentRide?.reservationid , booking.id)
+      currentRide?.reservationid === booking?.id && viewTripDetails() 
+    }else {
+      navigate('SelectTravelOptions', {bookingId : booking?.id})
+    }
+  }
 
 
   const helmetTitle = `Ma réservation pour ${booking.stock.offer.name} | pass Culture`
@@ -628,8 +643,9 @@ export function BookingDetails() {
             booking={booking}
             onCancel={cancelBooking}
             onTerminate={showArchiveModal}
-            onViewTripDetails={viewTripDetails}
+            onViewTripDetails={onClickViewTripDetails}
             fullWidth
+            disabled={!disabled}
             isLoading={showTripLoader}
           />
         </ViewWithPadding>
