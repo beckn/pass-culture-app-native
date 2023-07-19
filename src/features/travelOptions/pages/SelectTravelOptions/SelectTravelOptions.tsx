@@ -375,6 +375,7 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
           } else if (processPayload?.action === 'feedback_submitted' || processPayload?.action === 'home_screen') {
             rideUpdates(processPayload?.trip_id, processPayload?.trip_amount)
             navigateToHome();
+
             console.log('process_call: wallet transaction ', processPayload);
             HyperSdkReact.terminate();
             setModalVisible(true)

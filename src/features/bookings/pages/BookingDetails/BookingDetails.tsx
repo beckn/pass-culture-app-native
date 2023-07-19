@@ -58,6 +58,7 @@ const emptyBookings: Booking[] = []
 export function BookingDetails() {
 
   const { reset, navigate } = useNavigation<UseNavigationType>()
+
   const [showRideCanceledModal, setShowRideCanceledModal] = useState<boolean>(false)
   const closeRidecancelModal = () => {
     setShowRideCanceledModal(false)
@@ -102,6 +103,7 @@ export function BookingDetails() {
   console.log('venue-details', venue)
   // console.log('offerId', offerId)
   // const { navigate } = useNavigation<UseNavigationType>()
+
 
   // Allows to display a message in case of refresh specifying the cancellation
   // of the reservation being consulted if it is made via Flask Admin
@@ -267,6 +269,7 @@ export function BookingDetails() {
       });
   }
 
+
   const updateReservation = async (tripId, tripAmount) => {
     try {
       let currentRideObj = await AsyncStorage.getItem('currentRide');
@@ -334,6 +337,7 @@ export function BookingDetails() {
   const [mobileNumber, setMobileNumber] = useState();
   const mobileCountryCode = "+91";
 
+
   const bookingId = booking.id || '1234567'
   const [signatureResponse, setSignatureResponse] = useState(null); // State to store the signature response
 
@@ -341,6 +345,7 @@ export function BookingDetails() {
 
   const viewTripDetails = async () => {
     setShowTripLoader(true)
+
     let result;
     const { firstName } = (await api.getnativev1me()) || 'user'
     const { phoneNumber } = (await api.getnativev1me()) || '+918297921333'
@@ -428,14 +433,17 @@ export function BookingDetails() {
           console.log('initiate_result: ', processPayload2);
           if (res === 'SUCCESS') {
 
+
             if (process2.payload.signatureAuthData != undefined) {
               HyperSdkReact.process(JSON.stringify(process2));
             } else {
               alert('Invalid signature');
             }
+
             setTimeout(() => {
               setShowTripLoader(false)
             }, 3000)
+
             // HyperSdkReact.process(JSON.stringify(processPayload2));
             console.log('process_call: is called ', payload);
           } else {
@@ -478,6 +486,7 @@ export function BookingDetails() {
             console.log('process_call: wallet transaction ', processPayload);
             HyperSdkReact.terminate();
             eventListener2.remove()
+
             // navigateToHome()
             reset({
               index: 1,
@@ -491,10 +500,10 @@ export function BookingDetails() {
                 },
               ],
             })
+
             console.log('sdkbackpresfeedback');
             // setModalVisible(true)
           }
-
 
           if (processPayload?.ride_status === null && processPayload?.screen === 'home_screen') {
             HyperSdkReact.terminate();
@@ -512,7 +521,6 @@ export function BookingDetails() {
                 },
               ],
             })
-
 
             // setModalVisible(true)
           } else if (processPayload?.screen === 'trip_started_screen') {
@@ -560,6 +568,7 @@ export function BookingDetails() {
       } catch (error) {
         console.error(error);
       }
+
       const currentRideobj = await AsyncStorage.getItem('currentRide')
 
       if (!!currentRideobj) {
@@ -569,8 +578,10 @@ export function BookingDetails() {
       }
     }
 
+
     fetchSignatureResponse();
   }, []);
+
 
   const onClickViewTripDetails = async () => {
     const currentRideobj = await AsyncStorage.getItem('currentRide')
@@ -582,6 +593,7 @@ export function BookingDetails() {
       navigate('SelectTravelOptions', { bookingId: booking?.id })
     }
   }
+
 
 
   const helmetTitle = `Ma réservation pour ${booking.stock.offer.name} | pass Culture`
@@ -644,7 +656,7 @@ export function BookingDetails() {
           <BookingDetailsCancelButton
             booking={booking}
             onCancel={cancelBooking}
-            onTerminate={showArchiveModal}
+
             onViewTripDetails={onClickViewTripDetails}
             fullWidth
             disabled={!disabled}

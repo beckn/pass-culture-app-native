@@ -46,6 +46,7 @@ export const BookingDetailsCancelButton = (props: BookingDetailsCancelButtonProp
           <ActivationCodeButton onTerminate={props.onTerminate} fullWidth={props.fullWidth} />
           <Spacer.Column numberOfSpaces={4} />
           <ViewTripDetailsButton onClick={props.onViewTripDetails} fullWidth={props.fullWidth}  disabled={props.disabled} isLoading={props?.isLoading} />
+
         </>
       )
     }

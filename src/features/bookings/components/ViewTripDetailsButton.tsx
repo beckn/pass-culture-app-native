@@ -7,6 +7,7 @@ export interface ViewTripDetailsButtonProps {
   fullWidth?: boolean
   disabled?: boolean
   isLoading?: boolean
+
 }
 
 export const ViewTripDetailsButton = ({
@@ -14,6 +15,7 @@ export const ViewTripDetailsButton = ({
   fullWidth = false,
   isLoading = false,
   disabled = false,
+
 }: ViewTripDetailsButtonProps) => {
   return (
     <ButtonSecondary

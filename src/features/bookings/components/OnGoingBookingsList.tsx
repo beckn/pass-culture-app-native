@@ -1,4 +1,6 @@
+
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
 import {
   FlatList,
   ListRenderItem,
@@ -137,6 +139,7 @@ export function OnGoingBookingsList() {
           setCurrentAddress(address);
           console.log('Current Address:', address);
           return address;
+
         } else {
           console.log('No address found for the given coordinates.');
         }
@@ -157,9 +160,11 @@ export function OnGoingBookingsList() {
         if (data.results && data.results.length > 0) {
           const address = data.results[0].formatted_address;
           setdestAddress(address);
+
           console.log('Dest Address:', address);
           // return address;
           // 
+
         } else {
           console.log('No address found for the given coordinates.');
         }
@@ -202,7 +207,9 @@ export function OnGoingBookingsList() {
       source: {
         lat: currentLocation?.latitude,
         lon: currentLocation?.longitude,
+
         name: '',
+
       },
       destination: {
         lat: 48.895266,
@@ -240,6 +247,7 @@ export function OnGoingBookingsList() {
   }, [isFetching])
   const destLocation = useRef();
 
+
   const getReservationsByCommonKey = async (commonKey) => {
     try {
       const currentRide = await AsyncStorage.getItem('currentRide')
@@ -275,6 +283,7 @@ export function OnGoingBookingsList() {
     } catch (error) {
       console.error(error)
     }
+
     let currentAddressName = '1er, Tour Eiffel, Av. Gustave Eiffel, 75007 Paris, France';
     const apiKey = 'AIzaSyCFIR5ETG_Zfnx5dBpLke4ZD6WLvrZvEmk';
     const geocodeApiUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${position?.latitude},${position?.longitude}&key=${apiKey}`;
@@ -296,17 +305,21 @@ export function OnGoingBookingsList() {
         console.log('Error getting address:', error);
       });
 
+
     console.log('isHyperSdkReactInitialised:', HyperSdkReact.isNull());
     if (HyperSdkReact.isNull()) {
       HyperSdkReact.createHyperServices();
     }
     HyperSdkReact.initiate(initiatePayload);
     console.log('handleClickfromongoingbooking', signatureResponse)
+
     let process3 = { ...processPayload3 } // Create a copy of the processPayload2 object
+
     // setActiveScreen('OnGoingBookingsList');
 
     process3.payload.signatureAuthData.signature = result.signature
     process3.payload.signatureAuthData.authData = result.signatureAuthData
+
     process3.payload.source.lat = position?.latitude
     process3.payload.source.lon = position?.longitude
 
@@ -318,6 +331,7 @@ export function OnGoingBookingsList() {
     process3.payload.destination.name = destLocation.current.destination.name
 
     console.log('Updated processPayload3:', process3)
+
 
     const eventEmitter1 = new NativeEventEmitter(NativeModules.HyperSdkReact)
     let eventListener1;
