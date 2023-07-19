@@ -17,7 +17,9 @@ import { api } from 'api/api'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const renderItem: ListRenderItem<Booking | RideResponseType> = ({ item }) =>
-  item.reservationid ? <EndedRideBookingItem booking={item} /> : <EndedBookingItem booking={item} />
+
+  item.commonKey ? <EndedRideBookingItem booking={item} /> : <EndedBookingItem booking={item} />
+ 
 const keyExtractor: (item: Booking) => string = (item) =>
   item?.id?.toString() || item?.reservationid?.toString()
 

@@ -44,15 +44,17 @@ export const HomeHeader: FunctionComponent = function () {
   // }
 
 
-  const preFetchPayload = {
-    "service": "in.yatri.consumer",
-    "payload": {
-      "clientId": "passcultureconsumer"
-    }
-  }
-  HyperSdkReact.preFetch(JSON.stringify(preFetchPayload));
+  // const preFetchPayload = {
+  //   "service": "in.yatri.consumer",
+  //   "payload": {
+  //     "clientId": "passcultureconsumer"
+  //   }
+  // }
+  // HyperSdkReact.preFetch(JSON.stringify(preFetchPayload));
 
-  console.log(JSON.stringify(preFetchPayload), 'prefetch initialization');
+  // console.log(JSON.stringify(preFetchPayload), 'prefetch initialization');
+
+
   const navigation = useNavigation<UseNavigationType>()
   const availableCredit = useAvailableCredit()
   const { top } = useCustomSafeInsets()
