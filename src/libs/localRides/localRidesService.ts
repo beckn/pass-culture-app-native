@@ -63,7 +63,7 @@ export const localRidesService = {
       if (reservationsJSON !== null) {
         const reservations = JSON.parse(reservationsJSON)
         const filteredReservations = reservations.filter(
-          (reservation) => reservation.commonKey === mobile
+          (reservation: any) => reservation.commonKey === mobile
         )
 
         console.log('Retrieved reservations:', filteredReservations)
