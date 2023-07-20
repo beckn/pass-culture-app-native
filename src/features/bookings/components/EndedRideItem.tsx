@@ -10,6 +10,7 @@ import { ColorsEnum } from 'ui/theme/colors'
 import { BookingItemTitle } from './BookingItemTitle'
 
 export const EndedRideBookingItem = ({ ride }: endedRidesItemsProps) => {
+  console.log('ride ----------------------------- ',ride)
   return (
     <Container navigateTo={{ screen: 'RideDetails', params: { ride } }}>
       <StyledImage
