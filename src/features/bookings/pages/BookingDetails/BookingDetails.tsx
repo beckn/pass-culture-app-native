@@ -1,10 +1,5 @@
 import { useNavigation, useRoute } from '@react-navigation/native'
-import React, { useState, useEffect } from 'react'
-import { Platform, ScrollView, useWindowDimensions, NativeModules, NativeEventEmitter, BackHandler } from 'react-native'
-import { useQueryClient } from 'react-query'
-import styled from 'styled-components/native'
-import { navigateToHome } from 'features/navigation/helpers'
-import { GeolocPermissionState, useGeolocation } from 'libs/geolocation'
+import { api } from 'api/api'
 import { useBookings, useOngoingOrEndedBooking } from 'features/bookings/api'
 import { ArchiveBookingModal } from 'features/bookings/components/ArchiveBookingModal'
 import { BookingDetailsCancelButton } from 'features/bookings/components/BookingDetailsCancelButton'
@@ -14,39 +9,41 @@ import { CancelBookingModal } from 'features/bookings/components/CancelBookingMo
 import { TicketSwiper } from 'features/bookings/components/Ticket/TicketSwiper'
 import { getBookingProperties, getOfferRules } from 'features/bookings/helpers'
 import { isEligibleBookingsForArchive } from 'features/bookings/helpers/expirationDateUtils'
+import { useBookingDetailsContext } from 'features/bookings/pages/BookingDetails/context/BookingDetailsContextProvider'
 import { BookingNotFound } from 'features/bookings/pages/BookingNotFound/BookingNotFound'
 import { Booking } from 'features/bookings/types'
 import { UseNavigationType, UseRouteType } from 'features/navigation/RootNavigator/types'
+import { navigateToHome } from 'features/navigation/helpers'
 import { mergeOfferData } from 'features/offer/components/OfferTile/OfferTile'
+import { RideCanceledModal } from 'features/travelOptions/components/RideCanceledModal/RideCanceledModal'
+import HyperSdkReact from 'hyper-sdk-react'
 import { formatFullAddress } from 'libs/address/useFormatFullAddress'
 import { analytics, isCloseToBottom } from 'libs/analytics'
+import { GeolocPermissionState, useGeolocation } from 'libs/geolocation'
 import useFunctionOnce from 'libs/hooks/useFunctionOnce'
 import { SeeItineraryButton } from 'libs/itinerary/components/SeeItineraryButton'
 import { getGoogleMapsItineraryUrl } from 'libs/itinerary/openGoogleMapsItinerary'
-import { eventMonitoring, ScreenError } from 'libs/monitoring'
+import { localRidesService } from 'libs/localRides/localRidesService'
+import { ScreenError, eventMonitoring } from 'libs/monitoring'
 import { useNetInfoContext } from 'libs/network/NetInfoWrapper'
 import { QueryKeys } from 'libs/queryKeys'
 import { useSubcategoriesMapping } from 'libs/subcategories'
+import React, { useEffect, useState } from 'react'
+import { BackHandler, EmitterSubscription, NativeEventEmitter, NativeModules, Platform, ScrollView, useWindowDimensions } from 'react-native'
+import { useQueryClient } from 'react-query'
+import styled from 'styled-components/native'
 import { useOpacityTransition } from 'ui/animations/helpers/useOpacityTransition'
+import { LoadingPage } from 'ui/components/LoadingPage'
+import { Separator } from 'ui/components/Separator'
 import { ButtonPrimary } from 'ui/components/buttons/ButtonPrimary'
 import { HeroHeader } from 'ui/components/hero/HeroHeader'
 import { blurImageHeight, heroMarginTop } from 'ui/components/hero/useHeroDimensions'
-import { LoadingPage } from 'ui/components/LoadingPage'
 import { useModal } from 'ui/components/modals/useModal'
-import { Separator } from 'ui/components/Separator'
 import { SNACK_BAR_TIME_OUT, useSnackBarContext } from 'ui/components/snackBar/SnackBarContext'
 import { InternalTouchableLink } from 'ui/components/touchableLink/InternalTouchableLink'
-import { getSpacing, Spacer, Typo } from 'ui/theme'
+import { Spacer, Typo, getSpacing } from 'ui/theme'
 import { getHeadingAttrs } from 'ui/theme/typographyAttrs/getHeadingAttrs'
 import { Helmet } from 'ui/web/global/Helmet'
-import HyperSdkReact from 'hyper-sdk-react'
-import { api } from 'api/api'
-import { env } from 'libs/environment'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useBookingDetailsContext } from 'features/bookings/pages/BookingDetails/context/BookingDetailsContextProvider'
-import { getTabNavConfig } from 'features/navigation/TabBar/helpers'
-import { useGoBack } from 'features/navigation/useGoBack'
-import { RideCanceledModal } from 'features/travelOptions/components/RideCanceledModal/RideCanceledModal'
 //sdk specific
 
 const { HyperSDKModule } = NativeModules;
@@ -65,7 +62,7 @@ export function BookingDetails() {
   }
 
   async function removeCurrentRide() {
-    await AsyncStorage.removeItem('currentRide');
+    await localRidesService.removeCurrentRide();
   }
 
   const windowHeight = useWindowDimensions().height - blurImageHeight
@@ -194,11 +191,7 @@ export function BookingDetails() {
     longitude: 2.3522,
   })
   const { userPosition: position, showGeolocPermissionModal, permissionState } = useGeolocation()
-  const { goBack } = useNavigation<UseNavigationType>()
-  const [modalVisible, setModalVisible] = useState(true)
-  const [mapUrl, setMapUrl] = useState('')
   const [currentAddress, setCurrentAddress] = useState();
-  const [destAddress, setdestAddress] = useState();
 
   useEffect(() => {
     const fetchCurrentLocation = async () => {
@@ -210,13 +203,8 @@ export function BookingDetails() {
           if (position) {
             const { latitude, longitude } = position
             getAddressFromCoordinates(latitude, longitude);
-            let lat = 48.896599;
-            let lon = 2.401700;
-            getDestAddressFromCoordinates(lat, lon);
+    
             console.error('current location:', position)
-            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude || 48.8566
-              },${longitude || 2.3522}&format=png&zoom=12&size=640x640&key=${env.GOOGLE_MAP_API_KEY}`
-            setMapUrl(mapUrl)
           }
         } else {
           showGeolocPermissionModal()
@@ -228,7 +216,7 @@ export function BookingDetails() {
     fetchCurrentLocation()
   }, [permissionState, showGeolocPermissionModal])
 
-  function getAddressFromCoordinates(latitude, longitude) {
+  function getAddressFromCoordinates(latitude: number, longitude: number) {
     const apiKey = 'AIzaSyCFIR5ETG_Zfnx5dBpLke4ZD6WLvrZvEmk';
     const geocodeApiUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`;
 
@@ -247,47 +235,7 @@ export function BookingDetails() {
         console.log('Error getting address:', error);
       });
   }
-
-
-  function getDestAddressFromCoordinates(latitude, longitude) {
-    const apiKey = 'AIzaSyCFIR5ETG_Zfnx5dBpLke4ZD6WLvrZvEmk';
-    const geocodeApiUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`;
-
-    fetch(geocodeApiUrl)
-      .then(response => response.json())
-      .then(data => {
-        if (data.results && data.results.length > 0) {
-          const address = data.results[0].formatted_address;
-          setdestAddress(address);
-          console.log('Current Address:', address);
-        } else {
-          console.log('No address found for the given coordinates.');
-        }
-      })
-      .catch(error => {
-        console.log('Error getting address:', error);
-      });
-  }
-
-
-  const updateReservation = async (tripId, tripAmount) => {
-    try {
-      let currentRideObj = await AsyncStorage.getItem('currentRide');
-      let reservationsJSON = await AsyncStorage.getItem('reservations');
-      let reservations = (reservationsJSON && JSON.parse(reservationsJSON)?.length) ? JSON.parse(reservationsJSON) : [];
-      let currentRide = JSON.parse(currentRideObj);
-      currentRide['tripid'] = tripId
-      currentRide['tripamount'] = tripAmount
-      reservations.push(currentRide);
-      await AsyncStorage.setItem('reservations', JSON.stringify(reservations));
-      await removeCurrentRide();
-      console.log('No reservations found.');
-    } catch (error) {
-      console.log('Error updating reservation:', error);
-    }
-  };
-
-
+  
   const initiatePayload = JSON.stringify({
     // Replace with your initiate payload
     requestId: '6bdee986-f106-4884-ba9a-99c478d78c22',
@@ -327,19 +275,14 @@ export function BookingDetails() {
     }
   }
 
-  const rideUpdates = async (trip_id, trip_amount) => {
-    const cr = await AsyncStorage.getItem('currentRide')
+  const rideUpdates = async (trip_id: any, trip_amount: any) => {
+    const cr = await localRidesService.getCurrentRide()
     if (cr) {
-      updateReservation(trip_id, trip_amount);
+      localRidesService.updateLocalRides(trip_id, trip_amount);
     }
   }
-
-  const [mobileNumber, setMobileNumber] = useState();
   const mobileCountryCode = "+91";
 
-
-  const bookingId = booking.id || '1234567'
-  const [signatureResponse, setSignatureResponse] = useState(null); // State to store the signature response
 
   const [disabled, setDisabled] = useState(true);
 
@@ -350,10 +293,8 @@ export function BookingDetails() {
     const { firstName } = (await api.getnativev1me()) || 'user'
     const { phoneNumber } = (await api.getnativev1me()) || '+918297921333'
     let mobile = phoneNumber?.slice(3, phoneNumber.length)
-    setMobileNumber(mobile)
     try {
       result = await HyperSDKModule.dynamicSign(firstName, mobile, mobileCountryCode)
-      // setSignatureResponse(result)
       console.log('signauth_check_from_handle', result)
     } catch (error) {
       console.error(error)
@@ -364,42 +305,9 @@ export function BookingDetails() {
     if (HyperSdkReact.isNull()) {
       HyperSdkReact.createHyperServices();
     }
-    //   console.log('isHyperSdkReactin iF:', HyperSdkReact.isNull());
-    //   HyperSdkReact.isInitialised().then((init) => {
-    //     console.log('isInitialised:', init);
-    //     if (init) {
-    //       HyperSdkReact.initiate(initiatePayload);
-    //       console.log('isInitialised:if', init);
-    //     } else {
-    //       // HyperSdkReact.terminate();
-    //       // setActiveScreen('BookingDetails');
-    //       HyperSdkReact.initiate(initiatePayload);
-    //       console.log('isInitialised:else block', init);
-    //     }
-    //   });
-    // } else {
-    //   HyperSdkReact.isInitialised().then((init) => {
-    //     console.log('isInitialised:', init);
-    //     if (init) {
-
-    //       HyperSdkReact.terminate();
-    //       HyperSdkReact.createHyperServices();
-    //       HyperSdkReact.initiate(initiatePayload);
-    //     } else {
-    //       HyperSdkReact.terminate();
-    //       HyperSdkReact.createHyperServices();
-    //       HyperSdkReact.initiate(initiatePayload);
-    //       console.log('initiate: called');
-    //     }
-
-    //   });
-    // }
-
-
+ 
     HyperSdkReact.initiate(initiatePayload);
-
     const process2 = { ...processPayload2 }; // Create a copy of the processPayload2 object
-
 
     process2.payload.signatureAuthData.signature = result.signature
     process2.payload.signatureAuthData.authData = result.signatureAuthData
@@ -412,9 +320,9 @@ export function BookingDetails() {
 
 
     const eventEmitter2 = new NativeEventEmitter(NativeModules.HyperSdkReact);
-    let eventListener2;
+    let eventListener: EmitterSubscription;
 
-    eventListener2 = eventEmitter2.addListener('HyperEvent', (resp) => {
+    eventListener = eventEmitter2.addListener('HyperEvent', (resp) => {
       const data = JSON.parse(resp);
       const event = data.event || '';
       console.log('event_call_BookingDetails: is called ', event);
@@ -460,7 +368,7 @@ export function BookingDetails() {
             case 'home_screen':
               HyperSdkReact.terminate()
               navigateToHome()
-              eventListener2.remove()
+              eventListener.remove()
               console.log('sdkbackpressswitch');
 
           }
@@ -470,7 +378,7 @@ export function BookingDetails() {
           console.log('process_result: ', processPayload);
           if (processPayload?.status === 'TRIP_FINISHED') {
             //function call for wallet transaction
-            updateReservation(processPayload?.trip_id, processPayload?.trip_amount);
+            localRidesService.updateLocalRides(processPayload?.trip_id, processPayload?.trip_amount);
             console.log('process_call: wallet transaction ', processPayload);
             // HyperSdkReact.terminate();
           } else if (processPayload?.ride_status === 'CANCELLED_PRODUCT') {
@@ -479,14 +387,13 @@ export function BookingDetails() {
 
             setShowRideCanceledModal(true)
             removeCurrentRide()
-            eventListener2.remove()
+            eventListener.remove()
 
           } else if (processPayload?.action === 'feedback_submitted' || processPayload?.action === 'home_screen') {
             rideUpdates(processPayload?.trip_id, processPayload?.trip_amount)
             console.log('process_call: wallet transaction ', processPayload);
             HyperSdkReact.terminate();
-            eventListener2.remove()
-
+            eventListener.remove()
             // navigateToHome()
             reset({
               index: 1,
@@ -507,7 +414,7 @@ export function BookingDetails() {
 
           if (processPayload?.ride_status === null && processPayload?.screen === 'home_screen') {
             HyperSdkReact.terminate();
-            eventListener2.remove()
+            eventListener.remove()
             // navigateToHome()
             reset({
               index: 1,
@@ -521,14 +428,10 @@ export function BookingDetails() {
                 },
               ],
             })
-
             // setModalVisible(true)
           } else if (processPayload?.screen === 'trip_started_screen') {
-
           }
           console.log('process_call: process ', processPayload);
-
-
           break;
 
         default:
@@ -543,15 +446,12 @@ export function BookingDetails() {
 
     // return () => {
     //   setActiveScreen(null);
-    //   if (eventListener2) {
-    //     eventListener2.remove();
+    //   if (eventListener) {
+    //     eventListener.remove();
     //   }
     //   BackHandler.removeEventListener('hardwareBackPress', () => null);
     // };
-
   }
-
-
 
   useEffect(() => {
     const fetchSignatureResponse = async () => {
@@ -559,17 +459,14 @@ export function BookingDetails() {
       const { phoneNumber } = (await api.getnativev1me()) || '+918297921333'
       let mobile = phoneNumber?.slice(3, phoneNumber.length)
       console.log("test username1", mobile, firstName)
-      setMobileNumber(mobile);
       bookingDispatch(({ type: 'SET_ADDRESS', payload: venueFullAddress }))
       try {
         const result = await HyperSDKModule.dynamicSign(firstName, mobile, mobileCountryCode);
-        setSignatureResponse(result);
         console.log("signauth check", result);
       } catch (error) {
         console.error(error);
       }
-
-      const currentRideobj = await AsyncStorage.getItem('currentRide')
+      const currentRideobj = await localRidesService.getCurrentRide()
 
       if (!!currentRideobj) {
         const currentRide = JSON.parse(currentRideobj);
@@ -584,7 +481,7 @@ export function BookingDetails() {
 
 
   const onClickViewTripDetails = async () => {
-    const currentRideobj = await AsyncStorage.getItem('currentRide')
+    const currentRideobj = await localRidesService.getCurrentRide()
     if (!!currentRideobj) {
       const currentRide = JSON.parse(currentRideobj);
       console.log('bookingId : reservationId ', currentRide?.reservationid, booking.id)

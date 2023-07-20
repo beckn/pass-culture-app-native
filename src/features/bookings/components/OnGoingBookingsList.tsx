@@ -1,49 +1,46 @@
-
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-
-import {
-  FlatList,
-  ListRenderItem,
-  NativeScrollEvent,
-  NativeModules,
-  NativeEventEmitter,
-  BackHandler,
-} from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import styled from 'styled-components/native'
-import { GeolocPermissionState, useGeolocation } from 'libs/geolocation'
+import { api } from 'api/api'
 import { useBookings } from 'features/bookings/api'
 import { EndedBookingsSection } from 'features/bookings/components/EndedBookingsSection'
+import { RideBookingItem } from 'features/bookings/components/RideBookingItem'
 import { getEligibleBookingsForArchive } from 'features/bookings/helpers/expirationDateUtils'
 import { Booking, RideResponseType } from 'features/bookings/types'
+import { RideCanceledModal } from 'features/travelOptions/components/RideCanceledModal/RideCanceledModal'
+import HyperSdkReact from 'hyper-sdk-react'
 import { analytics, isCloseToBottom } from 'libs/analytics'
+import { useGeolocation } from 'libs/geolocation'
 import useFunctionOnce from 'libs/hooks/useFunctionOnce'
 import { useIsFalseWithDelay } from 'libs/hooks/useIsFalseWithDelay'
+import { localRidesService } from 'libs/localRides/localRidesService'
 import { useNetInfoContext } from 'libs/network/NetInfoWrapper'
 import { plural } from 'libs/plural'
 import { useSubcategories } from 'libs/subcategories/useSubcategories'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  BackHandler,
+  FlatList,
+  ListRenderItem,
+  NativeEventEmitter,
+  NativeModules,
+  NativeScrollEvent,
+} from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import styled from 'styled-components/native'
+import { Separator } from 'ui/components/Separator'
 import {
   BookingHitPlaceholder,
   NumberOfBookingsPlaceholder,
 } from 'ui/components/placeholders/Placeholders'
-import { Separator } from 'ui/components/Separator'
 import { SNACK_BAR_TIME_OUT, useSnackBarContext } from 'ui/components/snackBar/SnackBarContext'
-import { getSpacing, Typo } from 'ui/theme'
+import { Typo, getSpacing } from 'ui/theme'
 import { TAB_BAR_COMP_HEIGHT } from 'ui/theme/constants'
 import { getHeadingAttrs } from 'ui/theme/typographyAttrs/getHeadingAttrs'
 import { NoBookingsView } from './NoBookingsView'
 import { OnGoingBookingItem } from './OnGoingBookingItem'
-import { RideBookingItem } from 'features/bookings/components/RideBookingItem'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { env } from 'libs/environment'
-import { api } from 'api/api'
-import HyperSdkReact from 'hyper-sdk-react'
-import { RideCanceledModal } from 'features/travelOptions/components/RideCanceledModal/RideCanceledModal'
+import { EmitterSubscription } from 'react-native'
 
 const emptyBookings: Booking[] = []
 
 const ANIMATION_DURATION = 700
-
 
 interface Location {
   latitude: number
@@ -59,15 +56,12 @@ export function OnGoingBookingsList() {
   const showSkeleton = useIsFalseWithDelay(isLoading || subcategoriesIsLoading, ANIMATION_DURATION)
   const isRefreshing = useIsFalseWithDelay(isFetching, ANIMATION_DURATION)
   const { showErrorSnackBar } = useSnackBarContext()
-  const [mobileNumber, setMobileNumber] = useState()
+  const [mobileNumber, setMobileNumber] = useState<String | Number>()
   const mobileCountryCode = '+91'
   const [reservedRides, setReserveRides] = useState([])
   const [showRideCanceledModal, setShowRideCanceledModal] = useState<boolean>(false)
   const closeRidecancelModal = () => {
     setShowRideCanceledModal(false)
-  }
-  async function removeCurrentRide() {
-    await AsyncStorage.removeItem('currentRide');
   }
 
   const {
@@ -75,28 +69,7 @@ export function OnGoingBookingsList() {
     ended_bookings: endedBookings = emptyBookings,
   } = bookings ?? {}
 
-
-  const updateReservation = async (tripId: Number | String, tripAmount: Number | String) => {
-    try {
-      let currentRideObj = await AsyncStorage.getItem('currentRide');
-      let reservationsJSON = await AsyncStorage.getItem('reservations');
-      let reservations = (reservationsJSON && JSON.parse(reservationsJSON)?.length) ? JSON.parse(reservationsJSON) : [];
-      let currentRide = JSON.parse(currentRideObj);
-      currentRide['tripid'] = tripId
-      currentRide['tripamount'] = tripAmount
-      reservations.push(currentRide);
-      await AsyncStorage.setItem('reservations', JSON.stringify(reservations));
-      await AsyncStorage.removeItem('currentRide');
-    } catch (error) {
-      console.log('Error updating reservation:', error);
-    }
-  };
-
-
   const { userPosition: position, showGeolocPermissionModal, permissionState } = useGeolocation()
-  const [mapUrl, setMapUrl] = useState('')
-  const [currentAddress, setCurrentAddress] = useState();
-  const [destAddress, setdestAddress] = useState();
   const [currentLocation, setCurrentLocation] = useState<Location | null>({
     latitude: 48.8566,
     longitude: 2.3522,
@@ -105,76 +78,13 @@ export function OnGoingBookingsList() {
   useEffect(() => {
     const fetchCurrentLocation = async () => {
       try {
-
         setCurrentLocation(position)
-        console.error('current location:', position)
-        if (position) {
-          const { latitude, longitude } = position
-          getAddressFromCoordinates(latitude, longitude);
-          let lat = 48.896599;
-          let lon = 2.401700;
-          getDestAddressFromCoordinates(lat, lon);
-          console.error('current location:', position)
-          const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude || 48.8566
-            },${longitude || 2.3522}&format=png&zoom=12&size=640x640&key=${env.GOOGLE_MAP_API_KEY}`
-          setMapUrl(mapUrl)
-        }
-
       } catch (error) {
         console.error('Error getting current location:', error)
       }
     }
     fetchCurrentLocation()
   }, [permissionState, showGeolocPermissionModal])
-
-  function getAddressFromCoordinates(latitude, longitude) {
-    const apiKey = 'AIzaSyCFIR5ETG_Zfnx5dBpLke4ZD6WLvrZvEmk';
-    const geocodeApiUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`;
-
-    fetch(geocodeApiUrl)
-      .then(response => response.json())
-      .then(data => {
-        if (data.results && data.results.length > 0) {
-          const address = data.results[0].formatted_address;
-          setCurrentAddress(address);
-          console.log('Current Address:', address);
-          return address;
-
-        } else {
-          console.log('No address found for the given coordinates.');
-        }
-      })
-      .catch(error => {
-        console.log('Error getting address:', error);
-      });
-  }
-
-
-  function getDestAddressFromCoordinates(latitude, longitude) {
-    const apiKey = 'AIzaSyCFIR5ETG_Zfnx5dBpLke4ZD6WLvrZvEmk';
-    const geocodeApiUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`;
-
-    fetch(geocodeApiUrl)
-      .then(response => response.json())
-      .then(data => {
-        if (data.results && data.results.length > 0) {
-          const address = data.results[0].formatted_address;
-          setdestAddress(address);
-
-          console.log('Dest Address:', address);
-          // return address;
-          // 
-
-        } else {
-          console.log('No address found for the given coordinates.');
-        }
-      })
-      .catch(error => {
-        console.log('Error getting address:', error);
-      });
-  }
-
-
 
   const initiatePayload = JSON.stringify({
     // Replace with your initiate payload
@@ -247,10 +157,9 @@ export function OnGoingBookingsList() {
   }, [isFetching])
   const destLocation = useRef();
 
-
-  const getReservationsByCommonKey = async (commonKey) => {
+  const getReservationsByCommonKey = async (commonKey: any) => {
     try {
-      const currentRide = await AsyncStorage.getItem('currentRide')
+      const currentRide = await localRidesService.getCurrentRide()
       const currentRideObj = currentRide ? JSON.parse(currentRide) : {};
       destLocation.current = currentRideObj
       console.log('currentRide', currentRide);
@@ -262,10 +171,10 @@ export function OnGoingBookingsList() {
   }
 
   // State to store the signature response
-  const rideUpdates = async (trip_id, trip_amount) => {
-    const cr = await AsyncStorage.getItem('currentRide')
+  const rideUpdates = async (trip_id: any, trip_amount: any) => {
+    const cr = await localRidesService.getCurrentRide()
     if (cr) {
-      updateReservation(trip_id, trip_amount);
+      localRidesService.updateLocalRides(trip_id, trip_amount);
     }
   }
 
@@ -294,7 +203,6 @@ export function OnGoingBookingsList() {
         if (data.results && data.results.length > 0) {
           const address = data.results[0].formatted_address;
           currentAddressName = address;
-          // setCurrentAddress(address);
           console.log('Current Address:', address);
           return address;
         } else {
@@ -326,17 +234,18 @@ export function OnGoingBookingsList() {
     console.log('currentAddressName', currentAddressName);
     process3.payload.source.name = currentAddressName,
       console.log('destLocation', destLocation)
-    process3.payload.destination.lat = destLocation.current.destination.lat;
-    process3.payload.destination.lon = destLocation.current.destination.lon;
-    process3.payload.destination.name = destLocation.current.destination.name
-
+      if(destLocation?.current){
+        process3.payload.destination.lat = destLocation?.current?.destination?.lat;
+        process3.payload.destination.lon = destLocation?.current?.destination?.lon;
+        process3.payload.destination.name = destLocation?.current?.destination?.name  
+      }
     console.log('Updated processPayload3:', process3)
 
 
     const eventEmitter1 = new NativeEventEmitter(NativeModules.HyperSdkReact)
-    let eventListener1;
+    let eventListener: EmitterSubscription;
 
-    eventListener1 = eventEmitter1.addListener('HyperEvent', async (resp) => {
+    eventListener = eventEmitter1.addListener('HyperEvent', async (resp) => {
       const data = JSON.parse(resp)
       const event = data.event || ''
       console.log('event_call_OnGoingBooking: is called ', event)
@@ -376,88 +285,62 @@ export function OnGoingBookingsList() {
           switch (process_result) {
             case 'home_screen':
               HyperSdkReact.terminate()
-              eventListener1.remove()
-
+              eventListener.remove()
           }
 
           // Handle process result
           if (processPayload?.action === 'terminate' && processPayload?.screen === 'home_screen') {
             HyperSdkReact.terminate()
-            eventListener1.remove()
+            eventListener.remove()
             console.log('process_call: is called ', processPayload)
           } else if (processPayload?.ride_status === 'TRIP_FINISHED') {
             //function call for wallet transaction
-
-            await updateReservation(processPayload?.trip_id, processPayload?.trip_amount);
-            console.log('process_call: wallet transaction ---------------------------> ', processPayload)
+            await localRidesService.updateLocalRides(processPayload?.trip_id, processPayload?.trip_amount);
             refreshData(mobileNumber);
             // HyperSdkReact.terminate();
           } else if (processPayload?.ride_status === 'CANCELLED_PRODUCT') {
             console.log('process_call: Ride canceled By the driver11111 ', processPayload)
             HyperSdkReact.terminate()
             setShowRideCanceledModal(true)
-            removeCurrentRide()
-            eventListener1.remove()
+            localRidesService.removeCurrentRide()
+            eventListener.remove()
             refreshData(mobileNumber)
           } else if (
             processPayload?.action === 'feedback_submitted' || processPayload?.screen === 'home_screen') {
             console.log('process_call: wallet transaction ', processPayload)
             rideUpdates(processPayload?.trip_id, processPayload?.trip_amount)
             HyperSdkReact.terminate()
-            eventListener1.remove()
-            console.log('process_call:feedback_submitted ---------------------------> ', processPayload)
+            eventListener.remove()
             refreshData(mobileNumber);
           }
           // else if (
           //   processPayload?.action === 'feedback_submitted' || processPayload?.screen === 'home_screen') {
           //   console.log('process_call: wallet transaction ', processPayload)
           //   HyperSdkReact.terminate()
-          //   eventListener1.remove()
+          //   eventListener.remove()
           //   refreshData(mobileNumber);
           // }
-
           if (processPayload?.screen === 'home_screen') {
             HyperSdkReact.terminate()
-            eventListener1.remove()
+            eventListener.remove()
           } else if (processPayload?.screen === 'trip_started_screen') {
-
           }
           console.log('process_call: process ', processPayload)
-
           break
-
         default:
           console.log('Unknown Event', data)
       }
-
     })
 
     BackHandler.addEventListener('hardwareBackPress', () => {
       return !HyperSdkReact.isNull() && HyperSdkReact.onBackPressed()
     })
-
-    // return () => {
-    //   setActiveScreen(null);
-    //   if (eventListener1) {
-    //     eventListener1.remove();
-    //   }
-    //   BackHandler.removeEventListener('hardwareBackPress', () => null)
-    // }
-
-
   }
 
   const refreshData = async (mobile) => {
     const rideData = await getReservationsByCommonKey(mobile)
     setReserveRides(rideData)
   }
-
-
-
-  const [activeScreen, setActiveScreen] = useState(null);
-  //   event handlers for the sdk event
-
-
 
   const refetchOffline = useCallback(() => {
     showErrorSnackBar({
