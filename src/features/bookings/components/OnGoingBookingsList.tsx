@@ -56,9 +56,9 @@ export function OnGoingBookingsList() {
   const showSkeleton = useIsFalseWithDelay(isLoading || subcategoriesIsLoading, ANIMATION_DURATION)
   const isRefreshing = useIsFalseWithDelay(isFetching, ANIMATION_DURATION)
   const { showErrorSnackBar } = useSnackBarContext()
-  const [mobileNumber, setMobileNumber] = useState<String | Number>()
+  const [mobileNumber, setMobileNumber] = useState<String | undefined>()
   const mobileCountryCode = '+91'
-  const [reservedRides, setReserveRides] = useState([])
+  const [reservedRides, setReserveRides] = useState<any[]>([])
   const [showRideCanceledModal, setShowRideCanceledModal] = useState<boolean>(false)
   const closeRidecancelModal = () => {
     setShowRideCanceledModal(false)
@@ -78,7 +78,7 @@ export function OnGoingBookingsList() {
   useEffect(() => {
     const fetchCurrentLocation = async () => {
       try {
-        setCurrentLocation(position)
+        position && setCurrentLocation(position)
       } catch (error) {
         console.error('Error getting current location:', error)
       }
@@ -155,7 +155,7 @@ export function OnGoingBookingsList() {
     fetchSignatureResponse()
 
   }, [isFetching])
-  const destLocation = useRef();
+  const destLocation = useRef<{destination:{ lat:number;lon: number;name: string;}}>();
 
   const getReservationsByCommonKey = async (commonKey: any) => {
     try {
@@ -337,7 +337,7 @@ export function OnGoingBookingsList() {
     })
   }
 
-  const refreshData = async (mobile) => {
+  const refreshData = async (mobile ?: String) => {
     const rideData = await getReservationsByCommonKey(mobile)
     setReserveRides(rideData)
   }

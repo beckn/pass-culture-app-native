@@ -17,7 +17,7 @@ import { localRidesService } from 'libs/localRides/localRidesService'
 
 const renderItem: ListRenderItem<Booking | RideResponseType> = ({ item }) =>
 
-  item.commonKey ? <EndedRideBookingItem booking={item} /> : <EndedBookingItem booking={item} />
+  item?.commonKey ? <EndedRideBookingItem ride={item} /> : <EndedBookingItem booking={item} />
  
 const keyExtractor: (item: Booking) => string = (item) =>
   item?.id?.toString() || item?.reservationid?.toString()
@@ -51,7 +51,8 @@ export const EndedBookings: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [endedBookingsCount]
   )
-
+  const endedBookings = bookings?.ended_bookings || [];
+  const reservedRidesArray = reservedRides || [];
   return (
     <React.Fragment>
       <PageHeaderSecondary onGoBack={goBack} title="Réservations terminées" />
@@ -59,7 +60,7 @@ export const EndedBookings: React.FC = () => {
         listAs="ul"
         itemAs="li"
         contentContainerStyle={contentContainerStyle}
-        data={[...bookings?.ended_bookings, ...reservedRides] ?? []}
+        data={[...endedBookings, ...reservedRidesArray]}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         ItemSeparatorComponent={StyledSeparator}

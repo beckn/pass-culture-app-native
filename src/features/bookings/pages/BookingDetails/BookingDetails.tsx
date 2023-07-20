@@ -52,6 +52,11 @@ const { HyperSDKModule } = NativeModules;
 const scrollIndicatorInsets = { right: 1 }
 const emptyBookings: Booking[] = []
 
+interface BookingLocation {
+  latitude: number
+  longitude: number
+}
+
 export function BookingDetails() {
 
   const { reset, navigate } = useNavigation<UseNavigationType>()
@@ -186,7 +191,7 @@ export function BookingDetails() {
     }
   }
 
-  const [currentLocation, setCurrentLocation] = useState<Location | null>({
+  const [currentLocation, setCurrentLocation] = useState<BookingLocation>({
     latitude: 48.8566,
     longitude: 2.3522,
   })
@@ -198,7 +203,7 @@ export function BookingDetails() {
 
       try {
         if (permissionState === GeolocPermissionState.GRANTED) {
-          setCurrentLocation(position)
+          position && setCurrentLocation(position)
           console.error('current location:', position)
           if (position) {
             const { latitude, longitude } = position

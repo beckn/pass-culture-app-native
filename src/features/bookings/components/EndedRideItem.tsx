@@ -1,7 +1,7 @@
 import React from 'react'
 import styled from 'styled-components/native'
 
-import { BookingItemProps } from 'features/bookings/types'
+import { endedRidesItemsProps } from 'features/bookings/types'
 import { Image } from 'react-native'
 import { InternalTouchableLink } from 'ui/components/touchableLink/InternalTouchableLink'
 import { Dot } from 'ui/svg/icons/Dot'
@@ -9,23 +9,23 @@ import { Spacer, Typo, getSpacing } from 'ui/theme'
 import { ColorsEnum } from 'ui/theme/colors'
 import { BookingItemTitle } from './BookingItemTitle'
 
-export const EndedRideBookingItem = ({ booking }: BookingItemProps) => {
+export const EndedRideBookingItem = ({ ride }: endedRidesItemsProps) => {
   return (
-    <Container navigateTo={{ screen: 'RideDetails', params: { booking } }}>
+    <Container navigateTo={{ screen: 'RideDetails', params: { ride } }}>
       <StyledImage
         source={require('./../components/assets/Images/carbooking.png')}
         resizeMode="contain"
       />
 
       <AttributesView>
-        <BookingItemTitle title={booking?.name || 'Alliance Taxi'} />
+        <BookingItemTitle title={ride?.name || 'Alliance Taxi'} />
         <LocationContainer>
           <StyledLocationIcon
             resizeMode="contain"
             source={require('./../components/assets/Icons/blueLocationPin.png')}
           />
           <Spacer.Row numberOfSpaces={1} />
-          <DateLabel numberOfLines={1} >{booking?.source?.name}</DateLabel>
+          <DateLabel numberOfLines={1} >{ride?.source?.name}</DateLabel>
         </LocationContainer>
         <DotCoontainer>
           <Dot size={2} fillColor={ColorsEnum.GREY_MEDIUM} />
@@ -38,7 +38,7 @@ export const EndedRideBookingItem = ({ booking }: BookingItemProps) => {
             source={require('./../components/assets/Icons/redLocationPin.png')}
           />
           <Spacer.Row numberOfSpaces={1} />
-          <DateLabel numberOfLines={1} >{booking?.destination?.name}</DateLabel>
+          <DateLabel numberOfLines={1} >{ride?.destination?.name}</DateLabel>
         </LocationContainer>
         <Spacer.Flex />
       </AttributesView>

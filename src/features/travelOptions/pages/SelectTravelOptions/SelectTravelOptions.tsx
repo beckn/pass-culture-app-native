@@ -114,8 +114,6 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
       .then(response => response.json())
       .then(data => {
         if (data.results && data.results.length > 0) {
-          const latitude = data.results[0].geometry.location.lat;
-          const longitude = data.results[0].geometry.location.lng;
           setDestLocation(data.results[0].geometry.location)
         } else {
           console.log('No coordinates found for the given address.');

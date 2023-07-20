@@ -406,6 +406,7 @@ export interface BookingOfferResponse {
  * @interface BookingReponse
  */
 export interface BookingReponse {
+  [x: string]: any
   /**
    * @type {BookingActivationCodeResponse}
    * @memberof BookingReponse
