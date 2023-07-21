@@ -6,16 +6,16 @@ const useTravelOptions = () => {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  const fetchData = async (url, params) => {
+  const fetchData = async (url: string, params: {}) => {
     try {
       setLoading(true)
       let response
       if (Object.keys(params).length) {
         response = await axiosInstancePCM.get(url, { params })
       }
-      setData(response.data)
+      setData(response?.data)
       setLoading(false)
-    } catch (error) {
+    } catch (error: any) {
       setError(error)
       setLoading(false)
     }

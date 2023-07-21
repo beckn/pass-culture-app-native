@@ -13,6 +13,7 @@ export type Booking = BookingReponse
 export type RideResponseType = {
   reservationid: number
   tripid: string
+  name?:string
   tripamount: number
   source: {
     lat: number
@@ -31,4 +32,7 @@ export type RideResponseType = {
 export interface BookingItemProps {
   booking: Booking
   eligibleBookingsForArchive?: Booking[]
+}
+export interface endedRidesItemsProps {
+  ride: Booking
 }

@@ -1,4 +1,5 @@
 import { useNavigation } from '@react-navigation/native'
+import { RideResponseType } from 'features/bookings/types'
 import { UseNavigationType } from 'features/navigation/RootNavigator/types'
 import { env } from 'libs/environment'
 import React, { useEffect, useMemo, useState } from 'react'
@@ -10,23 +11,22 @@ import { Dot } from 'ui/svg/icons/Dot'
 import { Spacer, Typo, getSpacing } from 'ui/theme'
 import { ColorsEnum } from 'ui/theme/colors'
 
-const HEIGHT_CONTAINER = getSpacing(6)
 
-interface RideDetailsProps {
-  title: string
-  onClosePress: () => void
-  onEndReached: () => void
-}
+// interface RideDetailsProps {
+//   title: string
+//   onClosePress: () => void
+//   onEndReached: () => void
+// }
 
 export function RideDetails({ route }) {
   const rideData = route.params
   const { goBack } = useNavigation<UseNavigationType>()
 
-  const [rideDetail, setRideDeatails] = useState('')
-  const [picupAddress, setPicupAddress] = useState('')
-  const [dropAddress, setDropAddress] = useState('')
+  const [rideDetail, setRideDeatails] = useState<RideResponseType>({})
+  const [picupAddress, setPicupAddress] = useState<String | undefined>('')
+  const [dropAddress, setDropAddress] = useState<String | undefined>('')
 
-  const getPlace = async (lat, long) => {
+  const getPlace = async (lat: any, long: any) => {
     const mapUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat || 48.8566},${
       long || 2.3522
     }&sensor=true&key=${env.GOOGLE_MAP_API_KEY}`
@@ -38,34 +38,37 @@ export function RideDetails({ route }) {
       const results = data.results
       if (results.length > 0) {
         const addressComponents = results[0].address_components
-        const city = addressComponents.find((component) =>
+        const city = addressComponents.find((component: { types: string | string[] }) =>
           component.types.includes('locality')
         ).long_name
-        const country = addressComponents.find((component) =>
+        const country = addressComponents.find((component: { types: string | string[] }) =>
           component.types.includes('country')
         ).long_name
         const place = `${city}, ${country}`
         return place
+      }else {
+        return ''
       }
     } catch (error) {
       console.error('Error fetching place:', error)
+      return ''
     }
   }
 
   useEffect(() => {
-    setRideDeatails(rideData.booking)
+    setRideDeatails(rideData.ride)
 
     // Fetch the pickup address and update the state
     const fetchPickupAddress = async () => {
       try {
         const pickupPlace = await getPlace(
-          rideData.booking.source.latitude,
-          rideData.booking.source.longitude
+          rideData.ride.source.latitude,
+          rideData.ride.source.longitude
         )
         setPicupAddress(pickupPlace)
         const dropPlace = await getPlace(
-          rideData.booking.source.latitude,
-          rideData.booking.source.longitude
+          rideData.ride.source.latitude,
+          rideData.ride.source.longitude
         )
         setDropAddress(dropPlace)
       } catch (error) {
@@ -86,37 +89,37 @@ export function RideDetails({ route }) {
     )
   }, [rideDetail])
 
-  function formatDateToCustomString(dateStr) {
+  function formatDateToCustomString(dateStr: string | number | Date) {
     const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
+      'Janv',
+      'Févr',
+      'Mars',
+      'Avril',
+      'Mai',
+      'Juin',
+      'Juil',
+      'Août',
+      'Sept',
       'Oct',
       'Nov',
-      'Dec',
+      'Déc',
     ]
 
     const date = new Date(dateStr)
     const dayOfWeek = getShortDayOfWeek(date)
     const day = date.getUTCDate()
     const month = months[date.getUTCMonth()]
+    const Year = date.getUTCFullYear()
 
-    const suffix = getDaySuffix(day)
-    return `${dayOfWeek}, ${day}${suffix} ${month}`
+    return `${dayOfWeek}, ${day} ${month} ${Year}`
   }
 
-  function getShortDayOfWeek(date) {
+  function getShortDayOfWeek(date: Date) {
     const daysOfWeek = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
     return daysOfWeek[date.getUTCDay()]
   }
 
-  function getTimeIn12HourFormat(dateStr) {
+  function getTimeIn12HourFormat(dateStr: string | number | Date) {
     const date = new Date(dateStr)
     let hours = date.getUTCHours()
     const minutes = date.getUTCMinutes()
@@ -125,23 +128,6 @@ export function RideDetails({ route }) {
     const formattedHours = hours.toString().padStart(2, '0')
     const formattedMinutes = minutes.toString().padStart(2, '0')
     return `${formattedHours}:${formattedMinutes} ${period}`
-  }
-
-  function getDaySuffix(day) {
-    if (day >= 11 && day <= 13) {
-      return 'th'
-    } else {
-      switch (day % 10) {
-        case 1:
-          return 'st'
-        case 2:
-          return 'nd'
-        case 3:
-          return 'rd'
-        default:
-          return 'th'
-      }
-    }
   }
 
   return (

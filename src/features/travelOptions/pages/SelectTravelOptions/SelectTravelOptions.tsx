@@ -1,30 +1,24 @@
-import React, { useState, useEffect } from 'react'
-import {
-  View,
-  Linking,
-  NativeModules,
-  NativeEventEmitter,
-  BackHandler,
-  ActivityIndicator,
-} from 'react-native'
-import { navigateToHome } from 'features/navigation/helpers'
-import MapComponent from '../../components/MapComponent/MapComponent'
-import TravelListModal from '../../components/TravelListModal/TravelListModal'
-import { GeolocPermissionState, useGeolocation } from 'libs/geolocation'
-import { PageHeaderSecondary } from 'ui/components/headers/PageHeaderSecondary'
 import { useNavigation } from '@react-navigation/native'
+import { api } from 'api/api'
+import { useBookingDetailsContext } from 'features/bookings/pages/BookingDetails/context/BookingDetailsContextProvider'
 import { UseNavigationType } from 'features/navigation/RootNavigator/types'
+import { navigateToHome } from 'features/navigation/helpers'
+import { RideCanceledModal } from 'features/travelOptions/components/RideCanceledModal/RideCanceledModal'
 import HyperSdkReact from 'hyper-sdk-react'
 import { env } from 'libs/environment'
-import { api } from 'api/api'
+import { GeolocPermissionState, useGeolocation } from 'libs/geolocation'
+import { localRidesService } from 'libs/localRides/localRidesService'
+import React, { useEffect, useState } from 'react'
+import {
+  BackHandler,
+  NativeEventEmitter,
+  NativeModules,
+  View
+} from 'react-native'
+import { PageHeaderSecondary } from 'ui/components/headers/PageHeaderSecondary'
 import { ColorsEnum } from 'ui/theme/colors'
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useBookingDetailsContext } from 'features/bookings/pages/BookingDetails/context/BookingDetailsContextProvider'
-import { any } from 'prop-types'
-import { el } from 'date-fns/locale'
-import { RideCanceledModal } from 'features/travelOptions/components/RideCanceledModal/RideCanceledModal'
-
-
+import MapComponent from '../../components/MapComponent/MapComponent'
+import TravelListModal from '../../components/TravelListModal/TravelListModal'
 
 interface Location {
   latitude: number
@@ -35,15 +29,12 @@ const { HyperSDKModule } = NativeModules
 
 export const SelectTravelOptions = ({ navigation, route }: any) => {
 
-  const [mobileNumber, setMobileNumber] = useState()
   const mobileCountryCode = '+91'
+  const { bookingId } = route.params
   const [showRideCanceledModal, setShowRideCanceledModal] = useState<boolean>(false)
+  const [mobileNumber, setMobileNumber] = useState()
   const closeRidecancelModal = () => {
     setShowRideCanceledModal(false)
-  }
-
-  async function removeCurrentRide() {
-    await AsyncStorage.removeItem('currentRide');
   }
 
   // const enterPIPMode = () => {
@@ -57,61 +48,6 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
   //   });
   // }
 
-
-  const { bookingId } = route.params
-
-  const storeReservation = async (currentRideObj) => {
-    console.log("store-resevationcalled", currentRideObj)
-    try {
-      const getRide = await AsyncStorage.getItem('currentRide');
-
-      let currentRide = currentRideObj;
-
-      await AsyncStorage.setItem("currentRide", JSON.stringify(currentRide));
-    } catch (error) {
-      console.log('Error storing reservation:', error);
-    }
-  };
-
-  const updateReservation = async (tripId, tripAmount) => {
-
-    try {
-      let currentRideObj = await AsyncStorage.getItem('currentRide');
-      let reservationsJSON = await AsyncStorage.getItem('reservations');
-      let reservations = (reservationsJSON && JSON.parse(reservationsJSON)?.length) ? JSON.parse(reservationsJSON) : [];
-      let currentRide = JSON.parse(currentRideObj);
-      currentRide['tripid'] = tripId
-      currentRide['tripamount'] = tripAmount
-      reservations.push(currentRide);
-      await AsyncStorage.setItem('reservations', JSON.stringify(reservations));
-      await AsyncStorage.removeItem('currentRide');
-    } catch (error) {
-      console.log('Error updating reservation:', error);
-    }
-  };
-
-  const getReservationsByCommonKey = async (commonKey) => {
-    try {
-      const reservationsJSON = await AsyncStorage.getItem('reservations');
-
-      if (reservationsJSON !== null) {
-        const reservations = JSON.parse(reservationsJSON);
-        const filteredReservations = reservations.filter(
-          (reservation) => reservation.commonKey === commonKey
-        );
-
-        return filteredReservations;
-      } else {
-        console.log('No reservations found.');
-      }
-    } catch (error) {
-      console.log('Error updating reservation:', error);
-    }
-  };
-
-
-
-
   const [currentLocation, setCurrentLocation] = useState<Location | null>({
     latitude: 48.8566,
     longitude: 2.3522,
@@ -124,7 +60,6 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
   const [modalVisible, setModalVisible] = useState(true)
   const [mapUrl, setMapUrl] = useState('')
   const [currentAddress, setCurrentAddress] = useState();
-  const [destAddress, setdestAddress] = useState();
   const { address: bookingAddress } = useBookingDetailsContext()
 
   useEffect(() => {
@@ -136,11 +71,6 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
             setCurrentLocation(position)
             const { latitude, longitude } = position
             getAddressFromCoordinates(latitude, longitude);
-            // let lat = 48.896599;
-            // let lon = 2.401700;
-            // getDestAddressFromCoordinates(lat, lon);
-
-
             const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude || 48.8566
               },${longitude || 2.3522}&format=png&zoom=12&size=640x640&key=${env.GOOGLE_MAP_API_KEY}`
             setMapUrl(mapUrl)
@@ -155,7 +85,7 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
     fetchCurrentLocation()
   }, [permissionState, showGeolocPermissionModal, currentLocation, destLocation])
 
-  function getAddressFromCoordinates(latitude, longitude) {
+  function getAddressFromCoordinates(latitude: number, longitude: number) {
     const apiKey = 'AIzaSyDj_jBuujsEk8mkIva0xG6_H73oJEytXEA';
     const geocodeApiUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`;
 
@@ -175,26 +105,8 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
   }
 
 
-  function getDestAddressFromCoordinates(latitude, longitude) {
-    const apiKey = 'AIzaSyDj_jBuujsEk8mkIva0xG6_H73oJEytXEA';
-    const geocodeApiUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`;
 
-    fetch(geocodeApiUrl)
-      .then(response => response.json())
-      .then(data => {
-        if (data.results && data.results.length > 0) {
-          const address = data.results[0].formatted_address;
-          setdestAddress(address);
-        } else {
-          console.log('No address found for the given coordinates.');
-        }
-      })
-      .catch(error => {
-        console.log('Error getting address:', error);
-      });
-  }
-
-  function getCoordinatesFromAddress(address) {
+  function getCoordinatesFromAddress(address: string | number | boolean | null) {
     const apiKey = 'AIzaSyDj_jBuujsEk8mkIva0xG6_H73oJEytXEA';
     const geocodeApiUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
 
@@ -202,8 +114,6 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
       .then(response => response.json())
       .then(data => {
         if (data.results && data.results.length > 0) {
-          const latitude = data.results[0].geometry.location.lat;
-          const longitude = data.results[0].geometry.location.lng;
           setDestLocation(data.results[0].geometry.location)
         } else {
           console.log('No coordinates found for the given address.');
@@ -297,13 +207,6 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
           break;
 
         case 'hide_loader':
-          // hide the loader
-          // setTimeout(() => {
-          //   setShowLoader(false)
-          //   setModalVisible(false);
-          // }, 3000)
-
-          // setModalVisible(false);
           break;
 
         case 'initiate_result':
@@ -321,7 +224,7 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
               tripdate: new Date(),
               commonKey: mobileNumber,
             }
-            storeReservation(reservation1)
+            localRidesService.storeReservation(reservation1)
             // Initiation is successful, call process method
             if (process.payload.signatureAuthData != undefined) {
               HyperSdkReact.process(JSON.stringify(process));
@@ -337,7 +240,7 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
             // Handle initiation failure
             setShowLoader(false)
             setModalVisible(true)
-            AsyncStorage.removeItem('currentRide');
+            localRidesService.removeCurrentRide();
             console.log('Initiation failed.');
           }
           break
@@ -350,27 +253,21 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
               navigateToHome()
 
           }
-
-          //   break
-
           // case 'trip_status':
           const processPayload = data.payload || {}
-
           // Handle process result
           if (processPayload?.action === 'terminate' && processPayload?.screen === 'home_screen') {
             HyperSdkReact.terminate()
             eventListener.remove()
           } else if (processPayload?.ride_status === 'TRIP_FINISHED') {
             //function call for wallet transaction
-
-            updateReservation(processPayload?.trip_id, processPayload?.trip_amount);
-
+            localRidesService.updateLocalRides(processPayload?.trip_id, processPayload?.trip_amount);
           } else if (processPayload?.ride_status === 'CANCELLED_PRODUCT') {
             console.log('process_call: Ride canceled By the driver ', processPayload)
             HyperSdkReact.terminate()
             setModalVisible(true)
             setShowRideCanceledModal(true)
-            removeCurrentRide()
+            localRidesService.removeCurrentRide()
             eventListener.remove()
           } else if (processPayload?.action === 'feedback_submitted' || processPayload?.action === 'home_screen') {
             rideUpdates(processPayload?.trip_id, processPayload?.trip_amount)
@@ -382,15 +279,6 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
             eventListener.remove()
           }
 
-          // HyperSdkReact.terminate();
-          // } else if (processPayload?.action === 'feedback_submitted' || processPayload?.action === 'home_screen') {
-
-          //   HyperSdkReact.terminate();
-          //   eventListener.remove()
-          //   setModalVisible(true)
-          //   navigateToHome()
-          // }
-
           if (processPayload?.screen === 'home_screen') {
             HyperSdkReact.terminate()
             eventListener.remove()
@@ -400,10 +288,6 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
             // BackHandler.exitApp();
             // enterPIPMode();
           }
-
-          // 25 46 55 bookingdetailscancelbutton  //  viewtripdetailbutton - 14 8  18-19
-
-          // BookingDetail.tsx  183  339
           break
 
         default:
@@ -414,19 +298,6 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
     BackHandler.addEventListener('hardwareBackPress', () => {
       return !HyperSdkReact.isNull() && HyperSdkReact.onBackPressed()
     })
-
-    // const backhandler = BackHandler.addEventListener('hardwareBackPress', () => {
-    //   return true;
-    // });
-    // return () => {
-    //   backhandler.remove();
-    // };
-
-    // return () => {
-    //   eventListener.remove()
-    //   BackHandler.removeEventListener('hardwareBackPress', () => null)
-    // }
-
 
   }
 
@@ -450,14 +321,12 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
     fetchSignatureResponse();
   }, []);
 
-  const rideUpdates = async (trip_id, trip_amount) => {
-    const cr = await AsyncStorage.getItem('currentRide')
+  const rideUpdates = async (trip_id: any, trip_amount: any) => {
+    const cr = await localRidesService.getCurrentRide()
     if (cr) {
-      updateReservation(trip_id, trip_amount);
+      localRidesService.updateLocalRides(trip_id, trip_amount);
     }
   }
-
-
 
   return (
     <View style={{ flex: 1 }}>
@@ -474,7 +343,7 @@ export const SelectTravelOptions = ({ navigation, route }: any) => {
           visible={modalVisible}
           showLoader={showLoader}
           onProceed={() => handleClick()}
-          toggleModal={(value: boolean) => goBack()}
+          toggleModal={goBack}
         />
       )}
       <RideCanceledModal isModalVisible={showRideCanceledModal} onPressModalButton={closeRidecancelModal} hideModal={closeRidecancelModal} />

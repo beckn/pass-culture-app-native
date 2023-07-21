@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { FlatList, Image, Text, TouchableWithoutFeedback, View } from 'react-native'
+import { FlatList, Text, TouchableWithoutFeedback, View, ViewStyle } from 'react-native'
 import styled from 'styled-components/native'
 import { AccordionItem } from 'ui/components/AccordionItem'
 import { ButtonWithLinearGradient } from 'ui/components/buttons/buttonWithLinearGradient/ButtonWithLinearGradient'
@@ -14,6 +14,7 @@ import TravelPaymentRadio from 'features/travelOptions/components/RadioButton/Ra
 import { ModalLoader } from 'features/travelOptions/components/ModalLoader/ModalLoader'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Disabled } from 'ui/components/IconWithCaption.stories'
+import { TextStyle } from 'react-native'
 
 interface TravelListModalInterface {
   toggleModal: () => void
@@ -48,11 +49,11 @@ const TravelListModal = ({
         pickup_location: 'Paris',
         drop_location: 'rennes',
       })
-      const { domainsCredit } = await api.getnativev1me()
-      if (domainsCredit?.all.remaining) {
-        setWalletBalance(formatToFrenchDecimal(domainsCredit?.all?.remaining).match(/\d+/)[0])
-        // setWalletBalance(79);
-      }
+      // const { domainsCredit } = await api.getnativev1me()
+      // if (domainsCredit?.all.remaining) {
+      //   setWalletBalance(formatToFrenchDecimal(domainsCredit?.all?.remaining).match(/\d+/)[0])
+      //   // setWalletBalance(79);
+      // }
     }
 
     getUserDetails()
@@ -62,13 +63,13 @@ const TravelListModal = ({
   const minBalance = 50
 
   useEffect(() => {
-    if (listArr?.length) {
+    if (listArr && listArr?.length) {
       toggleItemSelection(listArr[0]['name'])
       setTravelOptions(listArr)
     }
   }, [listArr])
 
-  const travelOptionWrapperStyle = (isSelected: boolean) => ({
+  const travelOptionWrapperStyle = (isSelected: boolean) : ViewStyle  => ({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: isSelected ? 1.2 : 0,
@@ -77,23 +78,23 @@ const TravelListModal = ({
     // marginTop: 8
   })
 
-  const noteTextStyle = {
-    color: ColorsEnum.GREY_DARK,
-    fontSize: 12,
-    fontFamily: 'Montserrat',
-    fontWeight: '500',
-    lineHeight: 18,
-    textAlign: 'center',
-  }
+  // const noteTextStyle = {
+  //   color: ColorsEnum.GREY_DARK,
+  //   fontSize: 12,
+  //   fontFamily: 'Montserrat',
+  //   fontWeight: '500',
+  //   lineHeight: 18,
+  //   textAlign: 'center',
+  // }
 
-  const errorMessageStyle = {
+  const errorMessageStyle : TextStyle = {
     color: ColorsEnum.ERROR,
     fontSize: 12,
     fontFamily: 'Montserrat',
     fontWeight: '500',
     textAlign: 'center',
   }
-
+  const accordianHeaderText : TextStyle = { textAlign: 'center', fontWeight: '700', fontSize: 15 }
   const renderItem = ({ item }: any) => {
     const isSelected = selectedItem === item.name
 
@@ -121,7 +122,7 @@ const TravelListModal = ({
 
   const customHeader = () => (
     <HeaderTextWrapper>
-      <Typo.Body style={{ textAlign: 'center', fontWeight: '700', fontSize: 15 }}>
+      <Typo.Body style={accordianHeaderText}>
         {!isLoading ? 'Sélectionnez votre mode de transport ' : 'Recherche'}
       </Typo.Body>
     </HeaderTextWrapper>
@@ -145,11 +146,15 @@ const TravelListModal = ({
     setPaymentMode(selectedPaymentMode)
   }, [])
 
+  const isErrorValue = paymentMode === "Portefeuille..." && selectedItem;
+
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <TouchableWithoutFeedback onPress={() => toggleModal()}>
         <View>
           <AppModal
+            title=''
             animationOutTiming={1}
             visible={visible}
             customModalHeader={customHeader()}
@@ -169,7 +174,7 @@ const TravelListModal = ({
                 </LoaderWrapper>
               ) : (
                 <>
-                  {paymentMode === 'Portefeuille...' && walletBalance < minBalance && selectedItem && (
+                  {paymentMode === 'Portefeuille...'  && selectedItem && (
                     <ErrorMessageWrapper>
                       <Text style={errorMessageStyle}>
                         {
@@ -193,11 +198,7 @@ const TravelListModal = ({
                   <Spacer.Column numberOfSpaces={3} />
                   {selectedItem && (
                     <AccordianWrapper
-                      isError={
-                        paymentMode === 'Portefeuille...' &&
-                        walletBalance < minBalance &&
-                        selectedItem
-                      }>
+                      isError={Boolean(isErrorValue)}>
                       <AccordionItem
                         title={accordianTitle()}
                         onClose={() => setAccordianStatus(!accordianStatus)}
@@ -205,7 +206,7 @@ const TravelListModal = ({
                         <TravelPaymentRadio
                           selectedItem={paymentMode}
                           walletBalance={walletBalance}
-                          onPress={(paymentMode) => handlePaymentSelection(paymentMode)}
+                          onPress={(paymentMode: string) => handlePaymentSelection(paymentMode)}
                         />
                         {/* <NoteContainer>
                           <Text style={noteTextStyle}>
@@ -226,7 +227,7 @@ const TravelListModal = ({
                   showLoader ||
                   !selectedItem ||
                   !paymentMode ||
-                  !walletBalance ||
+                 
                   (paymentMode === 'Portefeuille...' && walletBalance > minBalance)
                 }
               />
@@ -249,7 +250,7 @@ const LoaderWrapper = styled.View({
 
 const ImageWrapper = styled.View({ marginRight: 12 })
 
-const AccordianWrapper = styled.View(({ isError }) => ({
+const AccordianWrapper = styled.View(({ isError }: { isError: boolean | null}) => ({
   borderWidth: isError ? 1 : 0.5,
   borderColor: isError ? ColorsEnum.ERROR : ColorsEnum.GREY_MEDIUM,
   borderRadius: 10,
@@ -267,15 +268,6 @@ const AccordianTextWrapper = styled.View({
 
 const ErrorMessageWrapper = styled.View({
   width: '100%',
-})
-
-const NoteContainer = styled.View({
-  justifyContent: 'center',
-  alignItems: 'center',
-  padding: 10,
-  width: '90%',
-  backgroundColor: ColorsEnum.GREY_MEDIUM,
-  borderRadius: 8,
 })
 
 const TitleText = styled.Text(({ disabled }) => ({

@@ -20,8 +20,7 @@ import { GenericInfoPageWhite } from 'ui/pages/GenericInfoPageWhite'
 import { BicolorTicketBooked } from 'ui/svg/icons/BicolorTicketBooked'
 import { PlainArrowPrevious } from 'ui/svg/icons/PlainArrowPrevious'
 import { getSpacing, Spacer, Typo } from 'ui/theme'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { ColorsEnum } from 'ui/theme/colors'
+import { localRidesService } from 'libs/localRides/localRidesService'
 
 export function BookingConfirmation() {
   const { params } = useRoute<UseRouteType<'BookingConfirmation'>>()
@@ -59,7 +58,7 @@ export function BookingConfirmation() {
 
   useEffect(()=>{
     async function getCurentRide() {
-      const currentRideObj = await AsyncStorage.getItem('currentRide')
+      const currentRideObj = await localRidesService.getCurrentRide()
       setDisableTravelOption(!!currentRideObj?.length)
      }
      getCurentRide()

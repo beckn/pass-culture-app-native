@@ -34,6 +34,7 @@ type Props = {
   onBackdropPress?: () => void
   onModalHide?: () => void
   onBackButtonPress: () => void
+  onRequestClose: () => void
   customModalHeader?: React.JSX.Element
   fixedModalBottom?: React.JSX.Element
   isFullscreen?: boolean
